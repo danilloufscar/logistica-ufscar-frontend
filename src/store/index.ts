@@ -1,6 +1,6 @@
 import { configureStore } from '@reduxjs/toolkit'
 import { definirAcaoSessaoExpirada } from '@/services/api'
-import authReducer, { sair } from './authSlice'
+import authReducer, { expirarSessao } from './authSlice'
 
 export const store = configureStore({
   reducer: {
@@ -9,8 +9,8 @@ export const store = configureStore({
 })
 
 // Token expirado ou inválido: volta para o login.
-definirAcaoSessaoExpirada(() => {
-  void store.dispatch(sair())
+definirAcaoSessaoExpirada((token) => {
+  store.dispatch(expirarSessao(token))
 })
 
 export type RootState = ReturnType<typeof store.getState>
