@@ -9,5 +9,5 @@ export function ProtectedRoute({ perfis }: { perfis?: readonly Perfil[] }) {
     return <Navigate to="/login" replace />
   }
   if (perfis && !perfis.includes(usuario.perfil)) return <AcessoNegadoPage />
-  return <Outlet />
+  return <Outlet key={token} />
 }

@@ -51,7 +51,8 @@ Use um usuário já cadastrado; não há credenciais fixas no frontend.
 |---|---|---|
 | `/login` | Público; sessão válida direciona ao início | Login integrado |
 | `/` | Administrador e Operador | Início e navegação |
-| `/usuarios` | Administrador | Área reservada; listagem e cadastro serão implementados nas próximas etapas |
+| `/usuarios` | Administrador | Listagem integrada ao backend |
+| `/usuarios/novo` | Administrador | Cadastro integrado ao backend |
 | Outras URLs | Exigem sessão | Página não encontrada com retorno ao início |
 
 `ProtectedRoute` centraliza a exigência de sessão e a restrição por perfil. `AppLayout` concentra o menu, a identificação e o logout. Os perfis permitidos para usuários são compartilhados entre a configuração da rota e do menu. Clientes, produtos e pedidos aparecem como “Em breve”, sem navegação ativa.
@@ -67,13 +68,40 @@ Use um usuário já cadastrado; não há credenciais fixas no frontend.
 ### Verificação da etapa 2
 
 1. Sem sessão, abrir `/` e `/usuarios`: ambos devem direcionar para `/login`.
-2. Entrar como Administrador: conferir menu, nome/perfil e acesso à área reservada de usuários. Atualizar `/usuarios` deve preservar o acesso.
+2. Entrar como Administrador: conferir menu, nome/perfil e acesso à listagem de usuários. Atualizar `/usuarios` deve preservar o acesso.
 3. Entrar como Operador: a opção Usuários deve ficar oculta; digitar `/usuarios` deve mostrar “Acesso negado”, mantendo a sessão.
 4. Abrir duas abas autenticadas e sair em uma: ambas devem voltar ao login. Um novo login deve atualizar o perfil nas duas.
 5. Para testar expiração em ambiente local, iniciar o backend com `JWT_EXPIRATION=PT30S`, fazer novo login e aguardar. A aplicação deve voltar ao login com aviso mesmo sem interação. Restaurar a configuração depois do teste.
 6. Conferir o menu em celular, o acesso por teclado e o retorno ao início em URL inexistente.
 
 O aceite da interface não substitui os testes de autorização da API. As chamadas internas devem usar a instância `api` de `services/api.ts` para receber os tratamentos de `401` e `403`.
+
+## Cadastro e listagem de usuários
+
+A listagem usa `GET /api/usuarios` e exibe nome, e-mail e perfil, na ordem recebida do backend (nome e id). Há estados de carregamento, lista vazia e erro com opção de tentar novamente, além do botão Atualizar lista. Senhas e hashes não são exibidos.
+
+Novo usuário abre `/usuarios/novo`, cujo formulário envia `POST /api/usuarios` com `nome`, `email`, `senha` e `perfil`. Somente Administrador pode acessar as duas telas; a API também exige esse perfil.
+
+- Nome obrigatório, até 120 caracteres; e-mail obrigatório, válido e até 254 caracteres. Espaços externos são removidos; e-mail é enviado em minúsculas.
+- Senha inicial obrigatória e limitada a 72 bytes UTF-8, preservando seu conteúdo. Não há tamanho mínimo adicional ao requisito. A senha fica apenas no estado do formulário e não é gravada em armazenamento local.
+- Perfil obrigatório, selecionado entre Administrador e Operador.
+- Durante o envio, o formulário e os botões ficam desabilitados. Não há reenvio automático de POST.
+- `400` associa os erros de `detalhes` aos respectivos campos; `409 / EMAIL_JA_CADASTRADO` destaca o e-mail; outros conflitos aparecem como erro geral.
+- Falha de rede/timeout pode ocorrer após o servidor persistir o cadastro: a tela orienta conferir a lista antes de repetir.
+- Após sucesso, aparece confirmação, a aplicação retorna à lista e busca os dados novamente. Se essa consulta falhar, é possível repeti-la sem reenviar o cadastro.
+- Ao sair da página ou trocar de sessão, requisições pendentes são canceladas no cliente e os estados são descartados. Cancelamento de requisição não desfaz uma gravação que já tenha ocorrido no servidor.
+
+### Verificação das etapas 3 e 4
+
+1. Entrar como Administrador e abrir Usuários: conferir os registros existentes e Atualizar lista.
+2. Usar Novo usuário e enviar o formulário vazio: verificar as mensagens de obrigatoriedade.
+3. Cadastrar um Operador com dados fictícios: conferir a confirmação e seu aparecimento na lista, inclusive após atualizar a página.
+4. Repetir o e-mail alterando caixa ou espaços externos: verificar a mensagem de duplicidade sem perder os dados preenchidos.
+5. Cadastrar outro Administrador com e-mail diferente e conferir o perfil exibido.
+6. Sair e entrar com o Operador recém-criado: login deve funcionar, mas `/usuarios` e `/usuarios/novo` devem mostrar Acesso negado.
+7. Entrar com o Administrador recém-criado: ele deve conseguir listar e cadastrar usuários.
+
+Edição e exclusão de usuários não fazem parte deste escopo.
 
 | Script | O que faz |
 | --- | --- |
