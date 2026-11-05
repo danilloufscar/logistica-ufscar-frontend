@@ -20,8 +20,14 @@ export function InicioPage() {
         ) : <p>Seu perfil permite trabalhar nas operações de logística. A gestão de usuários é exclusiva do Administrador.</p>}
       </Panel>
       <Panel>
-        <h2>Novas áreas em breve</h2>
-        <p>Clientes, produtos e pedidos serão disponibilizados nas próximas etapas.</p>
+        <h2>Clientes e produtos</h2>
+        <p>Cadastre e consulte os clientes e os produtos usados nas operações.</p>
+        <Link to="/clientes">Acessar cadastros</Link>
+      </Panel>
+      <Panel>
+        <h2>Pedidos</h2>
+        <p>Consulte os pedidos com seus status e prazos de entrega.</p>
+        <Link to="/pedidos">Acessar pedidos</Link>
       </Panel>
     </PageContent>
   )

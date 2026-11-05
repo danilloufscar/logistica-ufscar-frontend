@@ -61,3 +61,40 @@ export function mensagemDeErro(erro: unknown, padrao = 'Não foi possível concl
   }
   return padrao
 }
+
+interface ConflitoConhecido<C extends string> {
+  codigo: string
+  campo: C
+  mensagem: string
+}
+
+/**
+ * Separa a mensagem geral e os erros por campo de uma falha de cadastro (POST).
+ * `400` usa os `detalhes` da API; o conflito informado (`409`) é associado ao seu campo.
+ */
+export function interpretarErroDeCadastro<C extends string>(
+  erro: unknown,
+  camposConhecidos: readonly C[],
+  padrao: string,
+  conflito?: ConflitoConhecido<C>,
+): { mensagem: string; campos: Partial<Record<C, string>> } {
+  const campos: Partial<Record<C, string>> = {}
+  const mensagem = mensagemDeErro(erro, padrao)
+  if (!axios.isAxiosError(erro)) return { mensagem, campos }
+  if (!erro.response) {
+    // Sem resposta, o servidor pode ter gravado o cadastro mesmo assim.
+    return { mensagem: 'Não foi possível confirmar o cadastro. Confira a lista antes de tentar novamente.', campos }
+  }
+  const corpo = erro.response.data as { codigo?: unknown; detalhes?: unknown } | undefined
+  if (conflito && erro.response.status === 409 && corpo?.codigo === conflito.codigo) {
+    campos[conflito.campo] = conflito.mensagem
+  }
+  if (erro.response.status === 400 && corpo?.detalhes && typeof corpo.detalhes === 'object') {
+    const detalhes = corpo.detalhes as Record<string, unknown>
+    for (const campo of camposConhecidos) {
+      const mensagemCampo = detalhes[campo]
+      if (typeof mensagemCampo === 'string') campos[campo] = mensagemCampo
+    }
+  }
+  return { mensagem, campos }
+}
