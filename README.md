@@ -136,7 +136,7 @@ A API não tem edição nem exclusão de clientes e produtos, então a tela não
 
 ## Listagem de pedidos
 
-`/pedidos` lista os pedidos com número, cliente, status e prazo de entrega, do mais recente para o mais antigo (maior id primeiro). Pedidos atrasados recebem o selo “Atrasado”, linha destacada e prazo em vermelho. As cores dos status vêm de `theme.status`.
+`/pedidos` lista os pedidos com código de consulta (RN06), cliente, status e prazo de entrega, como pede o RF06, do mais recente para o mais antigo (maior id primeiro). Pedidos atrasados recebem o selo “Atrasado”, linha destacada e prazo em vermelho. As cores dos status vêm de `theme.status`.
 
 - Filtros de status (incluindo “Atrasado”) e cliente, combináveis e aplicados sobre a lista carregada. As opções de cliente são os clientes que aparecem nos pedidos.
 - Os filtros ficam na URL (`/pedidos?status=EM_TRANSITO&cliente=1`), preservados ao atualizar ou compartilhar o endereço. Valores desconhecidos são ignorados.
@@ -144,11 +144,13 @@ A API não tem edição nem exclusão de clientes e produtos, então a tela não
 - Estados de carregamento, lista vazia e erro com nova tentativa, como nas demais listagens.
 - “Novo pedido” e “Ver detalhes”, presentes no protótipo, serão adicionados junto com as respectivas telas.
 
-**Contrato esperado (proposto pelo front-end; o backend ainda não tem pedidos).** `GET /api/pedidos`, para Administrador e Operador, devolve `200` com um array:
+**Contrato usado pela tela.** `GET /api/pedidos`, para Administrador e Operador, devolve `200` com um array:
 
 ```json
-[{"id":1044,"cliente":{"id":1,"nome":"Comercial Silva Ltda"},"status":"EM_TRANSITO","prazoEntrega":"2026-10-21","atrasado":true}]
+[{"id":1044,"codigo":"K7QM2XPA","cliente":{"id":1,"nome":"Comercial Silva Ltda"},"status":"EM_TRANSITO","prazoEntrega":"2026-10-21","atrasado":true}]
 ```
+
+- `codigo`: código de consulta gerado na criação do pedido (RN06), exibido na primeira coluna. O `id` identifica o pedido nas chamadas à API e define a ordem.
 
 - `status`: `CRIADO`, `EM_SEPARACAO`, `DESPACHADO`, `EM_TRANSITO`, `ENTREGUE` ou `CANCELADO`.
 - `prazoEntrega`: data sem horário (`AAAA-MM-DD`), exibida como `21/10/2026`.
@@ -158,7 +160,7 @@ Enquanto o endpoint não existir, a tela mostra o estado de erro.
 
 ### Verificação da etapa 6
 
-1. Com o endpoint disponível, entrar como Operador e abrir Pedidos pelo menu: conferir a ordem (mais recentes primeiro), os selos e o rodapé. Repetir com Administrador.
+1. Com o endpoint disponível, entrar como Operador e abrir Pedidos pelo menu: conferir o código de consulta de cada pedido, a ordem (mais recentes primeiro), os selos e o rodapé. Repetir com Administrador.
 2. Conferir que um pedido com prazo vencido e não entregue aparece destacado, com o selo “Atrasado”.
 3. Filtrar por status, depois por cliente: a lista e o rodapé (`N de M pedidos`) devem refletir os dois filtros. Atualizar a página deve manter os filtros.
 4. Escolher uma combinação sem resultados: deve aparecer “Nenhum pedido encontrado” com a opção de limpar os filtros.

@@ -6,6 +6,8 @@ export type StatusExibido = StatusPedido | 'ATRASADO'
 /** Item de `GET /api/pedidos`. */
 export interface ResumoPedido {
   id: number
+  /** Código de consulta do pedido (RN06): 8 caracteres alfanuméricos, exibido na lista (RF06). */
+  codigo: string
   cliente: { id: number; nome: string }
   status: StatusPedido
   /** Data no formato AAAA-MM-DD. */

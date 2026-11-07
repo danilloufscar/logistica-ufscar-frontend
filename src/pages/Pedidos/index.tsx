@@ -10,7 +10,7 @@ import { FILTROS_STATUS, ROTULO_STATUS, formatarData } from '@/utils/pedido'
 import * as S from './styles'
 
 const COLUNAS: readonly Coluna<ResumoPedido>[] = [
-  { titulo: 'Pedido', valor: (pedido) => `#${pedido.id}`, semQuebra: true },
+  { titulo: 'Código', valor: (pedido) => pedido.codigo, semQuebra: true },
   { titulo: 'Cliente', valor: (pedido) => pedido.cliente.nome },
   {
     titulo: 'Status',
