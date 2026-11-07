@@ -2,20 +2,22 @@ import { useEffect, useRef, useState, type FormEvent } from 'react'
 import type { FieldValues, Path, UseFormReturn } from 'react-hook-form'
 import { toast } from 'react-toastify'
 
-interface Opcoes<F extends FieldValues> {
+interface Opcoes<F extends FieldValues, R> {
   valoresIniciais: F
   primeiroCampo: Path<F>
-  enviar: (dados: F, signal: AbortSignal) => Promise<unknown>
+  enviar: (dados: F, signal: AbortSignal) => Promise<R>
   interpretarErro: (erro: unknown) => { mensagem: string; campos: Partial<Record<Path<F>, string>> }
-  mensagemSucesso: string
-  aoCadastrar: () => void
+  mensagemSucesso: string | ((resultado: R) => string)
+  aoCadastrar: (resultado: R) => void
+  /** Limpa o formulário para o próximo registro. Desligue quando a página sair do formulário após salvar. */
+  limparAposSucesso?: boolean
 }
 
 /**
- * Envia um formulário de cadastro sem reenvio automático, associa os erros da API
- * aos campos e, após o sucesso, limpa o formulário para o próximo registro.
+ * Envia um formulário sem reenvio automático, associa os erros da API aos campos
+ * e, após o sucesso, avisa e (por padrão) limpa o formulário para o próximo registro.
  */
-export function useEnvioCadastro<F extends FieldValues>(form: UseFormReturn<F>, opcoes: Opcoes<F>) {
+export function useEnvioCadastro<F extends FieldValues, R>(form: UseFormReturn<F>, opcoes: Opcoes<F, R>) {
   const { valoresIniciais } = opcoes
   const { handleSubmit, reset, setError, setFocus, formState: { isSubmitting } } = form
   const requisicao = useRef<AbortController | null>(null)
@@ -40,11 +42,12 @@ export function useEnvioCadastro<F extends FieldValues>(form: UseFormReturn<F>, 
     requisicao.current = controller
     setErroGeral(null)
     try {
-      await opcoes.enviar(dados, controller.signal)
+      const resultado = await opcoes.enviar(dados, controller.signal)
       if (controller.signal.aborted) return
-      posEnvio.current = { limpar: true, foco: opcoes.primeiroCampo }
-      toast.success(opcoes.mensagemSucesso)
-      opcoes.aoCadastrar()
+      if (opcoes.limparAposSucesso ?? true) posEnvio.current = { limpar: true, foco: opcoes.primeiroCampo }
+      const { mensagemSucesso } = opcoes
+      toast.success(typeof mensagemSucesso === 'function' ? mensagemSucesso(resultado) : mensagemSucesso)
+      opcoes.aoCadastrar(resultado)
     } catch (erro) {
       if (controller.signal.aborted) return
       const { mensagem, campos } = opcoes.interpretarErro(erro)

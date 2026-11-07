@@ -69,12 +69,14 @@ interface ConflitoConhecido<C extends string> {
 }
 
 /**
- * Separa a mensagem geral e os erros por campo de uma falha de cadastro (POST).
+ * Separa a mensagem geral e os erros por campo de uma falha de cadastro (POST/PUT).
  * `400` usa os `detalhes` da API; o conflito informado (`409`) é associado ao seu campo.
+ * `camposConhecidos` lista os campos do formulário ou converte a chave da API no nome do campo
+ * (útil para listas, como `itens[1].quantidade`); chaves sem campo correspondente são ignoradas.
  */
 export function interpretarErroDeCadastro<C extends string>(
   erro: unknown,
-  camposConhecidos: readonly C[],
+  camposConhecidos: readonly C[] | ((chave: string) => C | undefined),
   padrao: string,
   conflito?: ConflitoConhecido<C>,
 ): { mensagem: string; campos: Partial<Record<C, string>> } {
@@ -91,9 +93,12 @@ export function interpretarErroDeCadastro<C extends string>(
   }
   if (erro.response.status === 400 && corpo?.detalhes && typeof corpo.detalhes === 'object') {
     const detalhes = corpo.detalhes as Record<string, unknown>
-    for (const campo of camposConhecidos) {
-      const mensagemCampo = detalhes[campo]
-      if (typeof mensagemCampo === 'string') campos[campo] = mensagemCampo
+    const paraCampo = typeof camposConhecidos === 'function'
+      ? camposConhecidos
+      : (chave: string) => camposConhecidos.find((campo) => campo === chave)
+    for (const [chave, mensagemCampo] of Object.entries(detalhes)) {
+      const campo = paraCampo(chave)
+      if (campo && typeof mensagemCampo === 'string') campos[campo] = mensagemCampo
     }
   }
   return { mensagem, campos }

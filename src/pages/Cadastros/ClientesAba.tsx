@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { useEnvioCadastro } from '@/hooks/useEnvioCadastro'
-import { useListagem } from '@/hooks/useListagem'
+import { useConsulta } from '@/hooks/useConsulta'
 import { cadastrarCliente, erroDeCadastroCliente, listarClientes } from '@/services/clienteService'
 import type { CadastroCliente, Cliente } from '@/types/cliente'
 import { TabelaDados, type Coluna } from '@/components/TabelaDados'
@@ -26,7 +26,7 @@ const VAZIO: CadastroCliente = { nome: '', telefone: '', endereco: '' }
 const CARACTERES_TELEFONE = /^[\d\s()+.-]+$/
 
 export function ClientesAba() {
-  const consulta = useListagem(listarClientes, 'Não foi possível carregar os clientes.')
+  const consulta = useConsulta(listarClientes, 'Não foi possível carregar os clientes.')
   useEffect(() => { document.title = 'Clientes | SGLU' }, [])
 
   return (

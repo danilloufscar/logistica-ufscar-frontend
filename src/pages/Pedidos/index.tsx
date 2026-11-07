@@ -2,8 +2,8 @@ import { useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { SeloStatus } from '@/components/SeloStatus'
 import { TabelaDados, type Coluna } from '@/components/TabelaDados'
-import { Button, Eyebrow, Field, Page } from '@/components/ui'
-import { useListagem } from '@/hooks/useListagem'
+import { Button, Eyebrow, Field, Page, PrimaryButtonLink } from '@/components/ui'
+import { useConsulta } from '@/hooks/useConsulta'
 import { listarPedidos } from '@/services/pedidoService'
 import type { ResumoPedido } from '@/types/pedido'
 import { FILTROS_STATUS, ROTULO_STATUS, formatarData } from '@/utils/pedido'
@@ -26,12 +26,22 @@ const COLUNAS: readonly Coluna<ResumoPedido>[] = [
     valor: (pedido) => <S.Prazo $atrasado={pedido.atrasado}>{formatarData(pedido.prazoEntrega)}</S.Prazo>,
     semQuebra: true,
   },
+  {
+    titulo: 'Ações',
+    tituloOculto: true,
+    alinhamento: 'direita',
+    valor: (pedido) => (
+      <S.LinkDetalhes to={`/pedidos/${pedido.id}`} aria-label={`Ver detalhes do pedido ${pedido.codigo}`}>
+        Ver detalhes
+      </S.LinkDetalhes>
+    ),
+  },
 ]
 
 const quantidade = (total: number) => `${total} ${total === 1 ? 'pedido' : 'pedidos'}`
 
 export function PedidosPage() {
-  const consulta = useListagem(listarPedidos, 'Não foi possível carregar os pedidos.')
+  const consulta = useConsulta(listarPedidos, 'Não foi possível carregar os pedidos.')
   const [parametros, setParametros] = useSearchParams()
   useEffect(() => { document.title = 'Pedidos | SGLU' }, [])
 
@@ -68,8 +78,13 @@ export function PedidosPage() {
 
   return (
     <Page aria-labelledby="pedidos-titulo">
-      <Eyebrow>Operação</Eyebrow>
-      <h1 id="pedidos-titulo">Pedidos</h1>
+      <S.Cabecalho>
+        <div>
+          <Eyebrow>Operação</Eyebrow>
+          <h1 id="pedidos-titulo">Pedidos</h1>
+        </div>
+        <PrimaryButtonLink to="/pedidos/novo">Novo pedido</PrimaryButtonLink>
+      </S.Cabecalho>
 
       <S.Filtros role="search" aria-label="Filtrar pedidos">
         <Field>

@@ -1,19 +1,19 @@
 import { useCallback, useEffect, useState } from 'react'
 import { mensagemDeErro } from '@/services/api'
 
-interface EstadoListagem<T> {
-  dados: T[] | null
+interface EstadoConsulta<T> {
+  dados: T | null
   erro: string | null
   carregando: boolean
 }
 
 /**
- * Consulta uma lista da API. Ao atualizar, os dados anteriores continuam visíveis
+ * Consulta dados da API. Ao atualizar, os dados anteriores continuam visíveis
  * até a nova resposta; se ela falhar, `erro` é preenchido sem descartá-los.
- * `carregar` deve ser estável (por exemplo, uma função de `services`).
+ * `carregar` deve ser estável (uma função de `services` ou memorizada com useCallback).
  */
-export function useListagem<T>(carregar: (signal: AbortSignal) => Promise<T[]>, mensagemPadrao: string) {
-  const [estado, setEstado] = useState<EstadoListagem<T>>({ dados: null, erro: null, carregando: true })
+export function useConsulta<T>(carregar: (signal: AbortSignal) => Promise<T>, mensagemPadrao: string) {
+  const [estado, setEstado] = useState<EstadoConsulta<T>>({ dados: null, erro: null, carregando: true })
   const [tentativa, setTentativa] = useState(0)
 
   useEffect(() => {
@@ -34,5 +34,8 @@ export function useListagem<T>(carregar: (signal: AbortSignal) => Promise<T[]>, 
     setTentativa((valor) => valor + 1)
   }, [])
 
-  return { ...estado, atualizar }
+  /** Usa dados já recebidos da API (por exemplo, a resposta de uma alteração) sem nova consulta. */
+  const substituir = useCallback((dados: T) => setEstado({ dados, erro: null, carregando: false }), [])
+
+  return { ...estado, atualizar, substituir }
 }

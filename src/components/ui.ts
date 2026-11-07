@@ -1,4 +1,5 @@
 import styled, { css } from 'styled-components'
+import { Link } from 'react-router-dom'
 import { theme } from '@/styles/theme'
 
 export const ocultoVisualmente = css`
@@ -9,6 +10,9 @@ export const ocultoVisualmente = css`
   clip-path: inset(50%);
   white-space: nowrap;
 `
+
+/** Texto lido por leitores de tela, mas não exibido. */
+export const Oculto = styled.span`${ocultoVisualmente}`
 
 export const cartao = css`
   min-width: 0;
@@ -32,7 +36,10 @@ export const Eyebrow = styled.p`
   color: ${({ theme }) => theme.colors.textoSecundario};
 `
 
-export const Button = styled.button`
+const botao = css`
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   min-height: ${({ theme }) => theme.size.controle};
   padding: 11px 18px;
   border: 1px solid ${({ theme }) => theme.colors.bordaCampo};
@@ -40,16 +47,48 @@ export const Button = styled.button`
   background: ${({ theme }) => theme.colors.branco};
   color: ${({ theme }) => theme.colors.texto};
   font-weight: 600;
+  text-decoration: none;
   cursor: pointer;
-  &:hover:not(:disabled) { background: ${({ theme }) => theme.colors.fundoHover}; }
+  &:hover:not(:disabled) { background: ${({ theme }) => theme.colors.fundoHover}; color: ${({ theme }) => theme.colors.texto}; }
   &:disabled { opacity: 0.65; cursor: wait; }
 `
 
-export const PrimaryButton = styled(Button)`
+const botaoPrimario = css`
   border-color: ${({ theme }) => theme.colors.destaque};
   background: ${({ theme }) => theme.colors.destaque};
   color: ${({ theme }) => theme.colors.branco};
-  &:hover:not(:disabled) { background: ${({ theme }) => theme.colors.destaqueHover}; }
+  &:hover:not(:disabled) { background: ${({ theme }) => theme.colors.destaqueHover}; color: ${({ theme }) => theme.colors.branco}; }
+`
+
+export const Button = styled.button`${botao}`
+
+export const PrimaryButton = styled.button`${botao}${botaoPrimario}`
+
+/** Ação destrutiva, como cancelar um pedido. */
+export const DangerButton = styled.button`
+  ${botao}
+  border-color: ${({ theme }) => theme.colors.obrigatorio};
+  background: ${({ theme }) => theme.colors.obrigatorio};
+  color: ${({ theme }) => theme.colors.branco};
+  &:hover:not(:disabled) { background: ${({ theme }) => theme.status.ATRASADO.texto}; color: ${({ theme }) => theme.colors.branco}; }
+`
+
+/** Link com aparência de botão, para navegação (por exemplo, "Novo pedido"). */
+export const ButtonLink = styled(Link)`${botao}`
+
+export const PrimaryButtonLink = styled(Link)`${botao}${botaoPrimario}`
+
+/** Botão com aparência de link, para ações secundárias dentro de listas e formulários. */
+export const TextButton = styled.button`
+  min-height: ${({ theme }) => theme.size.controle};
+  padding: 0 4px;
+  border: 0;
+  background: none;
+  color: ${({ theme }) => theme.colors.destaque};
+  font-weight: 500;
+  cursor: pointer;
+  &:hover:not(:disabled) { color: ${({ theme }) => theme.colors.destaqueHover}; text-decoration: underline; }
+  &:disabled { color: ${({ theme }) => theme.colors.textoSecundario}; cursor: not-allowed; }
 `
 
 export const ErrorText = styled.p`
@@ -65,6 +104,7 @@ const seta = `url("data:image/svg+xml,${encodeURIComponent(
 /** Rótulo e campo (input ou select) empilhados. */
 export const Field = styled.div`
   display: grid;
+  align-content: start;
   gap: 8px;
   label { font-size: ${({ theme }) => theme.font.rotulo.size}; font-weight: ${({ theme }) => theme.font.rotulo.weight}; }
   input, select {

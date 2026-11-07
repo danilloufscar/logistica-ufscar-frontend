@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Button, ErrorText } from '@/components/ui'
+import { Button, ErrorText, Oculto } from '@/components/ui'
 import * as S from './styles'
 
 export interface Coluna<T> {
@@ -7,6 +7,8 @@ export interface Coluna<T> {
   valor: (item: T) => ReactNode
   alinhamento?: 'direita'
   semQuebra?: boolean
+  /** Título só para leitores de tela, como numa coluna de ações. */
+  tituloOculto?: boolean
 }
 
 interface Props<T> {
@@ -53,7 +55,9 @@ export function TabelaDados<T extends { id: number }>({ consulta, itens, colunas
             <thead>
               <tr>
                 {colunas.map((coluna) => (
-                  <th key={coluna.titulo} scope="col" data-alinhamento={coluna.alinhamento}>{coluna.titulo}</th>
+                  <th key={coluna.titulo} scope="col" data-alinhamento={coluna.alinhamento}>
+                    {coluna.tituloOculto ? <Oculto>{coluna.titulo}</Oculto> : coluna.titulo}
+                  </th>
                 ))}
               </tr>
             </thead>
@@ -63,7 +67,8 @@ export function TabelaDados<T extends { id: number }>({ consulta, itens, colunas
                   {colunas.map((coluna, indice) => {
                     const Celula = indice === 0 ? 'th' : 'td'
                     return (
-                      <Celula key={coluna.titulo} scope={indice === 0 ? 'row' : undefined} data-label={coluna.titulo}
+                      <Celula key={coluna.titulo} scope={indice === 0 ? 'row' : undefined}
+                        data-label={coluna.tituloOculto ? '' : coluna.titulo}
                         data-alinhamento={coluna.alinhamento} data-quebra={coluna.semQuebra ? 'nunca' : undefined}>
                         {coluna.valor(item)}
                       </Celula>

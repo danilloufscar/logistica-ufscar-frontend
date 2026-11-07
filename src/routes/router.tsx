@@ -7,6 +7,8 @@ import { CadastrosPage } from '@/pages/Cadastros'
 import { ClientesAba } from '@/pages/Cadastros/ClientesAba'
 import { ProdutosAba } from '@/pages/Cadastros/ProdutosAba'
 import { PedidosPage } from '@/pages/Pedidos'
+import { DetalhePedidoPage } from '@/pages/Pedidos/DetalhePedido'
+import { EditarPedidoPage, NovoPedidoPage } from '@/pages/Pedidos/FormularioPedido'
 import { NaoEncontradaPage } from '@/pages/NaoEncontrada'
 import { AppLayout } from '@/layouts/AppLayout'
 import { ProtectedRoute } from './ProtectedRoute'
@@ -28,6 +30,9 @@ export const router = createBrowserRouter([
           ],
         },
         { path: '/pedidos', element: <PedidosPage /> },
+        { path: '/pedidos/novo', element: <NovoPedidoPage /> },
+        { path: '/pedidos/:id', element: <DetalhePedidoPage /> },
+        { path: '/pedidos/:id/editar', element: <EditarPedidoPage /> },
         {
           element: <ProtectedRoute perfis={PERFIS_ADMINISTRACAO} />,
           children: [

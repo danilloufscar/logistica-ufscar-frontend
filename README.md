@@ -55,7 +55,10 @@ Use um usuário já cadastrado; não há credenciais fixas no frontend.
 | `/usuarios/novo` | Administrador | Cadastro integrado ao backend |
 | `/clientes` | Administrador e Operador | Listagem e cadastro integrados ao backend |
 | `/produtos` | Administrador e Operador | Listagem e cadastro integrados ao backend |
-| `/pedidos` | Administrador e Operador | Listagem com filtros; aguarda `GET /api/pedidos` no backend |
+| `/pedidos` | Administrador e Operador | Listagem com filtros (RF06) |
+| `/pedidos/novo` | Administrador e Operador | Criação de pedido (RF04) |
+| `/pedidos/:id` | Administrador e Operador | Detalhe, linha do tempo, avanço e cancelamento (RF05, RF07) |
+| `/pedidos/:id/editar` | Administrador e Operador | Edição antes do despacho (RF05) |
 | Outras URLs | Exigem sessão | Página não encontrada com retorno ao início |
 
 `ProtectedRoute` centraliza a exigência de sessão e a restrição por perfil. `AppLayout` concentra o menu, a identificação e o logout. Os perfis permitidos para usuários são compartilhados entre a configuração da rota e do menu.
@@ -142,7 +145,7 @@ A API não tem edição nem exclusão de clientes e produtos, então a tela não
 - Os filtros ficam na URL (`/pedidos?status=EM_TRANSITO&cliente=1`), preservados ao atualizar ou compartilhar o endereço. Valores desconhecidos são ignorados.
 - O rodapé informa a quantidade (`2 de 7 pedidos` com filtros). Sem resultados, a tela oferece limpar os filtros.
 - Estados de carregamento, lista vazia e erro com nova tentativa, como nas demais listagens.
-- “Novo pedido” e “Ver detalhes”, presentes no protótipo, serão adicionados junto com as respectivas telas.
+- “Novo pedido” abre o formulário de criação; “Ver detalhes” abre o pedido.
 
 **Contrato usado pela tela.** `GET /api/pedidos`, para Administrador e Operador, devolve `200` com um array:
 
@@ -156,15 +159,42 @@ A API não tem edição nem exclusão de clientes e produtos, então a tela não
 - `prazoEntrega`: data sem horário (`AAAA-MM-DD`), exibida como `21/10/2026`.
 - `atrasado`: calculado pelo backend (prazo vencido sem entrega nem cancelamento), para que a regra seja a mesma em listagens, acompanhamento e relatórios.
 
-Enquanto o endpoint não existir, a tela mostra o estado de erro.
+## Criação, edição e detalhe de pedidos
+
+**Novo pedido (`/pedidos/novo`, RF04)** e **edição (`/pedidos/:id/editar`, RF05)** usam o mesmo formulário: cliente, prazo de entrega, endereço de entrega e itens (produto e quantidade). Enviam `POST /api/pedidos` ou `PUT /api/pedidos/{id}`:
+
+```json
+{"clienteId":1,"enderecoEntrega":"Rua das Flores, 120 – Sorocaba/SP","prazoEntrega":"2026-11-20","itens":[{"produtoId":1,"quantidade":20}]}
+```
+
+- Clientes e produtos vêm de `GET /api/clientes` e `GET /api/produtos`. Sem cadastros, a tela orienta a cadastrar antes.
+- Ao escolher o cliente, o endereço de entrega é preenchido com o endereço dele. Um endereço digitado pelo usuário é mantido.
+- Todos os campos são obrigatórios. O prazo não pode ser anterior a hoje (calendário de São Paulo, como na API); na edição, um prazo já vencido pode ser mantido.
+- Itens: ao menos um, quantidade inteira maior que zero (RN08) e sem produto repetido. “Remover” fica indisponível no último item.
+- Erros da API (`400` com `detalhes`, inclusive `itens[1].quantidade`) aparecem no campo correspondente; conflitos (`409`) aparecem no topo do formulário.
+- Após salvar, a tela abre o detalhe do pedido. A criação informa o código de consulta.
+- A edição só é oferecida em Criado ou Em separação (RN02); fora desses status, a página informa que o pedido não pode mais ser editado.
+
+**Detalhe (`/pedidos/:id`)** usa `GET /api/pedidos/{id}` e mostra status (com “Atrasado” quando for o caso), cliente, prazo, endereço, código de consulta, itens e a linha do tempo (RF07/RF13): cada etapa concluída com data, hora e usuário, a próxima etapa e as pendentes. Um pedido cancelado mostra só as etapas que ocorreram.
+
+- “Avançar para …” (`POST /api/pedidos/{id}/avancar` com `{"statusAtual": …}`) leva à próxima etapa (RN01). Se o pedido já tiver mudado (clique duplo ou outra pessoa), a API recusa com `409`, a tela avisa e recarrega o pedido.
+- “Editar” e “Cancelar pedido” aparecem só em Criado ou Em separação. O cancelamento pede confirmação (`POST /api/pedidos/{id}/cancelar`) e é final.
+- Ids inválidos ou inexistentes mostram “Pedido não encontrado”, com retorno à lista.
+- A baixa de estoque no despacho (RF09/RN03) é da Release 2; a linha do tempo ainda não a menciona.
 
 ### Verificação da etapa 6
 
-1. Com o endpoint disponível, entrar como Operador e abrir Pedidos pelo menu: conferir o código de consulta de cada pedido, a ordem (mais recentes primeiro), os selos e o rodapé. Repetir com Administrador.
+1. Entrar como Operador e abrir Pedidos pelo menu: conferir o código de consulta de cada pedido, a ordem (mais recentes primeiro), os selos e o rodapé. Repetir com Administrador.
 2. Conferir que um pedido com prazo vencido e não entregue aparece destacado, com o selo “Atrasado”.
 3. Filtrar por status, depois por cliente: a lista e o rodapé (`N de M pedidos`) devem refletir os dois filtros. Atualizar a página deve manter os filtros.
 4. Escolher uma combinação sem resultados: deve aparecer “Nenhum pedido encontrado” com a opção de limpar os filtros.
-5. Conferir a tela em celular e por teclado.
+5. Usar “Novo pedido” e enviar vazio: verificar as mensagens. Escolher um cliente e conferir o endereço preenchido.
+6. Informar prazo de ontem, o mesmo produto em dois itens e quantidade `1,5`: cada campo deve indicar o erro.
+7. Criar o pedido: a tela deve abrir o detalhe com status Criado, o código de consulta e a linha do tempo com data, hora e usuário.
+8. Avançar até Entregue, uma etapa por vez: cada etapa entra na linha do tempo; “Editar” e “Cancelar pedido” somem a partir de Despachado.
+9. Em outro pedido, editar em Em separação (alterar quantidade, remover um item) e depois cancelar, confirmando no diálogo.
+10. Abrir o mesmo pedido em duas abas, avançar em uma e tentar avançar na outra: deve aparecer o aviso e o status atualizado.
+11. Conferir as telas em celular e por teclado.
 
 | Script | O que faz |
 | --- | --- |

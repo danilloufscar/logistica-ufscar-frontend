@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { useEnvioCadastro } from '@/hooks/useEnvioCadastro'
-import { useListagem } from '@/hooks/useListagem'
+import { useConsulta } from '@/hooks/useConsulta'
 import { cadastrarProduto, erroDeCadastroProduto, listarProdutos } from '@/services/produtoService'
 import type { CadastroProduto, Produto } from '@/types/produto'
 import { TabelaDados, type Coluna } from '@/components/TabelaDados'
@@ -31,7 +31,7 @@ function enviarProduto(dados: FormularioProduto, signal: AbortSignal) {
 }
 
 export function ProdutosAba() {
-  const consulta = useListagem(listarProdutos, 'Não foi possível carregar os produtos.')
+  const consulta = useConsulta(listarProdutos, 'Não foi possível carregar os produtos.')
   useEffect(() => { document.title = 'Produtos | SGLU' }, [])
 
   return (
