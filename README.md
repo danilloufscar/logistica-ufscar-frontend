@@ -20,6 +20,89 @@ npm run dev
 
 Acesse http://localhost:5173. As chamadas para `/api` são repassadas ao back-end em `http://localhost:8080` (configurável em `API_PROXY_TARGET`).
 
+No PowerShell, o comando para copiar a configuração é `Copy-Item .env.example .env`.
+
+## Login integrado
+
+A tela `/login` usa `POST /api/auth/login` com `{ email, senha }` e recebe `{ token }`.
+Antes de testar, inicie o PostgreSQL e o backend, usando as instruções do repositório do backend.
+Use um usuário já cadastrado; não há credenciais fixas no frontend.
+
+- Campos obrigatórios e formato de e-mail são validados antes do envio. A senha é enviada sem remover seus espaços.
+- Durante a requisição, o formulário fica desabilitado e o botão mostra “Entrando…”.
+- A tela mostra erros de credenciais, conexão e indisponibilidade do servidor, permitindo tentar novamente.
+- O token retornado é armazenado em `localStorage` (`sglu.token`); a senha não é armazenada.
+- Após autenticar, `/` apresenta a área interna com menu, nome, perfil e botão Sair. O menu adapta-se a telas pequenas.
+- Ao abrir a aplicação, tokens expirados ou com dados obrigatórios inválidos são descartados. A validação da assinatura e das permissões continua sendo responsabilidade do backend.
+- Uma nova tentativa de login não envia um token antigo no cabeçalho Authorization.
+
+### Roteiro de verificação
+
+1. Acesse `/`: sem sessão, a aplicação deve abrir `/login`.
+2. Envie campos vazios e um e-mail inválido: as mensagens devem aparecer junto aos campos.
+3. Entre com uma senha incorreta: deve aparecer “E-mail ou senha incorretos”.
+4. Entre com credenciais válidas de Administrador ou Operador: a página inicial deve mostrar o nome e o perfil.
+5. Atualize a página: uma sessão válida deve ser preservada. Use Sair: a sessão deve ser removida e a tela de login reapresentada.
+6. Confira o formulário em celular e a navegação por teclado, incluindo mostrar/ocultar senha.
+
+## Área interna e controle de acesso
+
+| Rota | Acesso | Estado |
+|---|---|---|
+| `/login` | Público; sessão válida direciona ao início | Login integrado |
+| `/` | Administrador e Operador | Início e navegação |
+| `/usuarios` | Administrador | Listagem integrada ao backend |
+| `/usuarios/novo` | Administrador | Cadastro integrado ao backend |
+| Outras URLs | Exigem sessão | Página não encontrada com retorno ao início |
+
+`ProtectedRoute` centraliza a exigência de sessão e a restrição por perfil. `AppLayout` concentra o menu, a identificação e o logout. Os perfis permitidos para usuários são compartilhados entre a configuração da rota e do menu. Clientes, produtos e pedidos aparecem como “Em breve”, sem navegação ativa.
+
+`SessionObserver` agenda o encerramento para o horário `exp` do JWT, mesmo sem chamadas à API, e revalida a sessão ao retornar à aba/janela. Login, troca de usuário e logout são sincronizados entre abas pela alteração de `localStorage`.
+
+- Token expirado/inválido: limpar a sessão e abrir `/login` com uma mensagem.
+- `401` de uma requisição autenticada da sessão atual: mesmo encerramento com aviso. Erro de credenciais no login é tratado pelo formulário.
+- `403`: informar falta de permissão e manter a sessão. O Operador acessando `/usuarios` pela URL recebe uma página de acesso negado.
+- Respostas atrasadas de uma sessão anterior não encerram uma sessão nova; login cancelado por logout não restaura o acesso.
+- Logout remove o token local. Não existe endpoint de revogação imediata; o backend continua validando assinatura, expiração e permissões em cada requisição.
+
+### Verificação da etapa 2
+
+1. Sem sessão, abrir `/` e `/usuarios`: ambos devem direcionar para `/login`.
+2. Entrar como Administrador: conferir menu, nome/perfil e acesso à listagem de usuários. Atualizar `/usuarios` deve preservar o acesso.
+3. Entrar como Operador: a opção Usuários deve ficar oculta; digitar `/usuarios` deve mostrar “Acesso negado”, mantendo a sessão.
+4. Abrir duas abas autenticadas e sair em uma: ambas devem voltar ao login. Um novo login deve atualizar o perfil nas duas.
+5. Para testar expiração em ambiente local, iniciar o backend com `JWT_EXPIRATION=PT30S`, fazer novo login e aguardar. A aplicação deve voltar ao login com aviso mesmo sem interação. Restaurar a configuração depois do teste.
+6. Conferir o menu em celular, o acesso por teclado e o retorno ao início em URL inexistente.
+
+O aceite da interface não substitui os testes de autorização da API. As chamadas internas devem usar a instância `api` de `services/api.ts` para receber os tratamentos de `401` e `403`.
+
+## Cadastro e listagem de usuários
+
+A listagem usa `GET /api/usuarios` e exibe nome, e-mail e perfil, na ordem recebida do backend (nome e id). Há estados de carregamento, lista vazia e erro com opção de tentar novamente, além do botão Atualizar lista. Senhas e hashes não são exibidos.
+
+Novo usuário abre `/usuarios/novo`, cujo formulário envia `POST /api/usuarios` com `nome`, `email`, `senha` e `perfil`. Somente Administrador pode acessar as duas telas; a API também exige esse perfil.
+
+- Nome obrigatório, até 120 caracteres; e-mail obrigatório, válido e até 254 caracteres. Espaços externos são removidos; e-mail é enviado em minúsculas.
+- Senha inicial obrigatória e limitada a 72 bytes UTF-8, preservando seu conteúdo. Não há tamanho mínimo adicional ao requisito. A senha fica apenas no estado do formulário e não é gravada em armazenamento local.
+- Perfil obrigatório, selecionado entre Administrador e Operador.
+- Durante o envio, o formulário e os botões ficam desabilitados. Não há reenvio automático de POST.
+- `400` associa os erros de `detalhes` aos respectivos campos; `409 / EMAIL_JA_CADASTRADO` destaca o e-mail; outros conflitos aparecem como erro geral.
+- Falha de rede/timeout pode ocorrer após o servidor persistir o cadastro: a tela orienta conferir a lista antes de repetir.
+- Após sucesso, aparece confirmação, a aplicação retorna à lista e busca os dados novamente. Se essa consulta falhar, é possível repeti-la sem reenviar o cadastro.
+- Ao sair da página ou trocar de sessão, requisições pendentes são canceladas no cliente e os estados são descartados. Cancelamento de requisição não desfaz uma gravação que já tenha ocorrido no servidor.
+
+### Verificação das etapas 3 e 4
+
+1. Entrar como Administrador e abrir Usuários: conferir os registros existentes e Atualizar lista.
+2. Usar Novo usuário e enviar o formulário vazio: verificar as mensagens de obrigatoriedade.
+3. Cadastrar um Operador com dados fictícios: conferir a confirmação e seu aparecimento na lista, inclusive após atualizar a página.
+4. Repetir o e-mail alterando caixa ou espaços externos: verificar a mensagem de duplicidade sem perder os dados preenchidos.
+5. Cadastrar outro Administrador com e-mail diferente e conferir o perfil exibido.
+6. Sair e entrar com o Operador recém-criado: login deve funcionar, mas `/usuarios` e `/usuarios/novo` devem mostrar Acesso negado.
+7. Entrar com o Administrador recém-criado: ele deve conseguir listar e cadastrar usuários.
+
+Edição e exclusão de usuários não fazem parte deste escopo.
+
 | Script | O que faz |
 | --- | --- |
 | `npm run dev` | Servidor de desenvolvimento |
@@ -49,8 +132,8 @@ Use sempre as cores e fontes de `src/styles/theme.ts` (as mesmas do protótipo n
 
 - Todas as rotas do back-end ficam sob o prefixo `/api`.
 - Login: `POST /api/auth/login` com `{ email, senha }`, que devolve `{ token }`.
-- O token JWT deve trazer `sub` (e-mail), `nome`, `perfil` (`ADMINISTRADOR` ou `OPERADOR`) e `exp`.
-- O Axios envia o token em `Authorization: Bearer <token>`; uma resposta 401 encerra a sessão.
+- O token JWT deve trazer `sub` (e-mail), `id`, `nome`, `perfil` (`ADMINISTRADOR` ou `OPERADOR`) e `exp`.
+- O Axios envia o token em `Authorization: Bearer <token>`, exceto no login. Resposta 401 autenticada encerra a sessão correspondente; 403 informa falta de permissão.
 
 ## Docker
 
