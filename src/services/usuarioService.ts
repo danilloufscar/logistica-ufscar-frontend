@@ -1,7 +1,8 @@
-import axios from 'axios'
-import { api, mensagemDeErro } from './api'
+import { api, interpretarErroDeCadastro } from './api'
 import type { Usuario } from '@/types/auth'
 import type { CadastroUsuario, CampoCadastroUsuario } from '@/types/usuario'
+
+const CAMPOS: readonly CampoCadastroUsuario[] = ['nome', 'email', 'senha', 'perfil']
 
 export async function listarUsuarios(signal: AbortSignal): Promise<Usuario[]> {
   const { data } = await api.get<Usuario[]>('/usuarios', { signal })
@@ -14,25 +15,8 @@ export async function cadastrarUsuario(dados: CadastroUsuario, signal: AbortSign
   return data
 }
 
-export function erroDeCadastro(erro: unknown): {
-  mensagem: string
-  campos: Partial<Record<CampoCadastroUsuario, string>>
-} {
-  const campos: Partial<Record<CampoCadastroUsuario, string>> = {}
-  const mensagem = mensagemDeErro(erro, 'Não foi possível cadastrar o usuário.')
-  if (!axios.isAxiosError(erro)) return { mensagem, campos }
-  if (!erro.response) {
-    return { mensagem: 'Não foi possível confirmar o cadastro. Confira a lista antes de tentar novamente.', campos }
-  }
-  const corpo = erro.response.data as { codigo?: unknown; detalhes?: unknown } | undefined
-  if (erro.response.status === 409 && corpo?.codigo === 'EMAIL_JA_CADASTRADO') {
-    campos.email = 'Este e-mail já está cadastrado.'
-  }
-  if (erro.response.status === 400 && corpo?.detalhes && typeof corpo.detalhes === 'object') {
-    const detalhes = corpo.detalhes as Record<string, unknown>
-    for (const campo of ['nome', 'email', 'senha', 'perfil'] as const) {
-      if (typeof detalhes[campo] === 'string') campos[campo] = detalhes[campo]
-    }
-  }
-  return { mensagem, campos }
+export function erroDeCadastro(erro: unknown) {
+  return interpretarErroDeCadastro(erro, CAMPOS, 'Não foi possível cadastrar o usuário.', {
+    codigo: 'EMAIL_JA_CADASTRADO', campo: 'email', mensagem: 'Este e-mail já está cadastrado.',
+  })
 }
