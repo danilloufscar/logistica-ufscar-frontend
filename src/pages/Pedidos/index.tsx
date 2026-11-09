@@ -45,8 +45,8 @@ export function PedidosPage() {
   const [parametros, setParametros] = useSearchParams()
   useEffect(() => { document.title = 'Pedidos | SGLU' }, [])
 
-  // Mais recentes primeiro: o id cresce a cada pedido criado.
-  const pedidos = useMemo(() => consulta.dados && [...consulta.dados].sort((a, b) => b.id - a.id), [consulta.dados])
+  // A API ordena pela data de criação, usando o id apenas como desempate.
+  const pedidos = consulta.dados
   const clientes = useMemo(() => {
     const nomes = new Map<number, string>()
     for (const pedido of pedidos ?? []) nomes.set(pedido.cliente.id, pedido.cliente.nome)

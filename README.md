@@ -230,6 +230,8 @@ Use sempre as cores e fontes de `src/styles/theme.ts` (as mesmas do protótipo n
 
 ## Docker
 
+Para subir frontend, backend e PostgreSQL juntos, mantenha os dois repositórios em pastas irmãs e execute `docker compose up -d --build` na pasta do backend, após preencher o `.env` conforme seu README. O frontend fica em `http://localhost:3000`, com `/api` encaminhado ao backend. O Compose completo já está no repositório do backend; não é preciso copiar o exemplo abaixo para usá-lo.
+
 ```bash
 docker build -t sglu-frontend .
 docker run -p 3000:80 -e BACKEND_URL=http://backend:8080 sglu-frontend
