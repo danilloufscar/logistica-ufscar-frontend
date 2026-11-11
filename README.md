@@ -256,3 +256,11 @@ No `docker-compose.yml` do back-end, o front pode ser construído direto deste r
 - Abra um Pull Request; outro integrante revisa antes do merge.
 - A CI (GitHub Actions) roda lint, build e build da imagem Docker em cada PR.
 - Use apenas dados fictícios.
+
+## Entrada de estoque — RF08
+
+A rota protegida `/estoque/entradas`, disponível no menu para Administrador e Operador, carrega produtos de `GET /api/produtos` e registra entradas por `POST /api/estoque/entradas`. Selecione produto, quantidade inteira positiva e data. Após salvar, a tela confirma a entrada, o responsável e o saldo após aquela operação.
+
+Os campos são desabilitados durante o envio e não há repetição automática do POST. Erros de validação aparecem nos campos; em falha de conexão, confirme se o registro ocorreu antes de tentar novamente. O resumo mostra somente a última entrada registrada nesta tela e não substitui a futura consulta de saldos/histórico.
+
+Para validar: cadastre um produto, abra Entrada de estoque, registre 10 unidades e depois 5; confira saldos 10 e 15. Repita com Operador. Verifique campos obrigatórios e rejeição de quantidade zero, negativa ou fracionada. Sem produtos cadastrados, a tela oferece acesso ao cadastro. A API precisa estar atualizada com a migração V5.

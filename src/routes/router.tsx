@@ -1,6 +1,7 @@
 import { createBrowserRouter } from 'react-router-dom'
 import { LoginPage } from '@/pages/Login'
 import { InicioPage } from '@/pages/Inicio'
+import { EntradaEstoquePage } from '@/pages/Estoque/EntradaEstoquePage'
 import { UsuariosPage } from '@/pages/Usuarios'
 import { NovoUsuarioPage } from '@/pages/Usuarios/NovoUsuarioPage'
 import { CadastrosPage } from '@/pages/Cadastros'
@@ -22,6 +23,7 @@ export const router = createBrowserRouter([
       element: <AppLayout />,
       children: [
         { path: '/', element: <InicioPage /> },
+        { path: '/estoque/entradas', element: <EntradaEstoquePage /> },
         {
           element: <CadastrosPage />,
           children: [

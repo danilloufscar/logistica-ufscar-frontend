@@ -13,5 +13,6 @@ export const navigationItems: readonly NavigationItem[] = [
   { nome: 'Usuários', caminho: '/usuarios', perfis: PERFIS_ADMINISTRACAO },
   { nome: 'Clientes', caminho: '/clientes' },
   { nome: 'Produtos', caminho: '/produtos' },
+  { nome: 'Entrada de estoque', caminho: '/estoque/entradas' },
   { nome: 'Pedidos', caminho: '/pedidos' },
 ]
