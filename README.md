@@ -230,6 +230,8 @@ Use sempre as cores e fontes de `src/styles/theme.ts` (as mesmas do protótipo n
 
 ## Docker
 
+Para subir frontend, backend e PostgreSQL juntos, mantenha os dois repositórios em pastas irmãs e execute `docker compose up -d --build` na pasta do backend, após preencher o `.env` conforme seu README. O frontend fica em `http://localhost:3000`, com `/api` encaminhado ao backend. O Compose completo já está no repositório do backend; não é preciso copiar o exemplo abaixo para usá-lo.
+
 ```bash
 docker build -t sglu-frontend .
 docker run -p 3000:80 -e BACKEND_URL=http://backend:8080 sglu-frontend
@@ -254,3 +256,19 @@ No `docker-compose.yml` do back-end, o front pode ser construído direto deste r
 - Abra um Pull Request; outro integrante revisa antes do merge.
 - A CI (GitHub Actions) roda lint, build e build da imagem Docker em cada PR.
 - Use apenas dados fictícios.
+
+## Entrada de estoque — RF08
+
+A rota protegida `/estoque/entradas`, disponível no menu para Administrador e Operador, carrega produtos de `GET /api/produtos` e registra entradas por `POST /api/estoque/entradas`. Selecione produto, quantidade inteira positiva e data. Após salvar, a tela confirma a entrada, o responsável e o saldo após aquela operação.
+
+Os campos são desabilitados durante o envio e não há repetição automática do POST. Erros de validação aparecem nos campos; em falha de conexão, confirme se o registro ocorreu antes de tentar novamente. O resumo mostra somente a última entrada registrada nesta tela e não substitui a consulta de saldos nem um histórico de movimentações.
+
+Para validar: cadastre um produto, abra Entrada de estoque, registre 10 unidades e depois 5; confira saldos 10 e 15. Repita com Operador. Verifique campos obrigatórios e rejeição de quantidade zero, negativa ou fracionada. Sem produtos cadastrados, a tela oferece acesso ao cadastro. A API precisa estar atualizada com a migração V5.
+
+## Consulta de estoque — RF10
+
+A rota protegida `/estoque` e o menu **Saldo de estoque** estão disponíveis para Administrador e Operador. A tela consulta `GET /api/estoque` e mostra código, produto, saldo atual, estoque mínimo e situação. O destaque visual e o texto **No mínimo ou abaixo** usam o indicador `abaixoOuNoMinimo` calculado pela API, inclusive para saldo e mínimo iguais a zero.
+
+**Atualizar saldos** consulta novamente o backend. **Registrar entrada** abre o RF08; após salvar, **Consultar estoque atualizado** volta à lista e faz uma nova consulta. Uma falha ao atualizar mantém os dados anteriores com aviso explícito de lista desatualizada e opção de tentar novamente. A consulta ocorre ao abrir a tela ou atualizar manualmente, sem polling automático.
+
+Para validar, use produtos com mínimo 5 e saldos 4, 5 e 6: apenas os dois primeiros devem estar em alerta. Um produto com saldo e mínimo zero também fica em alerta. Registre entradas até passar do mínimo e retorne à consulta para conferir saldo e situação. Repita com Operador.

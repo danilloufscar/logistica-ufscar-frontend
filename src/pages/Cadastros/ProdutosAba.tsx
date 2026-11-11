@@ -96,7 +96,7 @@ function FormularioProduto({ aoCadastrar }: { aoCadastrar: () => void }) {
             {errors.estoqueMinimo && <S.ErrorText id="produto-estoque-erro" role="alert">{errors.estoqueMinimo.message}</S.ErrorText>}
           </S.Field>
         </fieldset>
-        <S.Ajuda id="produto-ajuda">O código deve ser único. O saldo começa em zero e muda pelas entradas.</S.Ajuda>
+        <S.Ajuda id="produto-ajuda">O código deve ser único. Informe o estoque mínimo em unidades inteiras, a partir de zero.</S.Ajuda>
         <S.Actions>
           <S.PrimaryButton type="submit" disabled={isSubmitting}>{isSubmitting ? 'Salvando…' : 'Salvar produto'}</S.PrimaryButton>
           <S.Button type="button" disabled={isSubmitting} onClick={cancelar}>Cancelar</S.Button>

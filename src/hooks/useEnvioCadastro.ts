@@ -21,6 +21,7 @@ export function useEnvioCadastro<F extends FieldValues, R>(form: UseFormReturn<F
   const { valoresIniciais } = opcoes
   const { handleSubmit, reset, setError, setFocus, formState: { isSubmitting } } = form
   const requisicao = useRef<AbortController | null>(null)
+  const envioEmAndamento = useRef(false)
   const posEnvio = useRef<{ limpar: boolean; foco: Path<F> } | null>(null)
   const [erroGeral, setErroGeral] = useState<string | null>(null)
 
@@ -64,7 +65,13 @@ export function useEnvioCadastro<F extends FieldValues, R>(form: UseFormReturn<F
   return {
     erroGeral,
     limparErroGeral: () => setErroGeral(null),
-    aoEnviar: (event: FormEvent<HTMLFormElement>) => { void handleSubmit(onSubmit)(event) },
+    aoEnviar: (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault()
+      // Bloqueia também a validação concorrente, que encerraria isSubmitting antes do POST.
+      if (envioEmAndamento.current) return
+      envioEmAndamento.current = true
+      void handleSubmit(onSubmit)(event).finally(() => { envioEmAndamento.current = false })
+    },
     cancelar: () => {
       reset(valoresIniciais, { keepFieldsRef: true })
       setErroGeral(null)

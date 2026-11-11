@@ -1,6 +1,8 @@
 import { createBrowserRouter } from 'react-router-dom'
 import { LoginPage } from '@/pages/Login'
 import { InicioPage } from '@/pages/Inicio'
+import { EntradaEstoquePage } from '@/pages/Estoque/EntradaEstoquePage'
+import { SaldoEstoquePage } from '@/pages/Estoque/SaldoEstoquePage'
 import { UsuariosPage } from '@/pages/Usuarios'
 import { NovoUsuarioPage } from '@/pages/Usuarios/NovoUsuarioPage'
 import { CadastrosPage } from '@/pages/Cadastros'
@@ -22,6 +24,8 @@ export const router = createBrowserRouter([
       element: <AppLayout />,
       children: [
         { path: '/', element: <InicioPage /> },
+        { path: '/estoque/entradas', element: <EntradaEstoquePage /> },
+        { path: '/estoque', element: <SaldoEstoquePage /> },
         {
           element: <CadastrosPage />,
           children: [

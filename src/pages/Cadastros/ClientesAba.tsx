@@ -22,9 +22,6 @@ const TEXTOS = {
 
 const VAZIO: CadastroCliente = { nome: '', telefone: '', endereco: '' }
 
-// O backend preserva a formatação informada; aqui só se evita texto que não seja telefone.
-const CARACTERES_TELEFONE = /^[\d\s()+.-]+$/
-
 export function ClientesAba() {
   const consulta = useConsulta(listarClientes, 'Não foi possível carregar os clientes.')
   useEffect(() => { document.title = 'Clientes | SGLU' }, [])
@@ -74,8 +71,6 @@ function FormularioCliente({ aoCadastrar }: { aoCadastrar: () => void }) {
                 setValueAs: (valor: string) => valor.trim(),
                 required: 'Informe o telefone.',
                 maxLength: { value: 30, message: 'O telefone deve ter até 30 caracteres.' },
-                validate: (valor) => (CARACTERES_TELEFONE.test(valor) && (valor.match(/\d/g)?.length ?? 0) >= 8)
-                  || 'Informe um telefone válido. Ex.: (15) 3221-4400.',
               })} />
             {errors.telefone && <S.ErrorText id="cliente-telefone-erro" role="alert">{errors.telefone.message}</S.ErrorText>}
           </S.Field>
