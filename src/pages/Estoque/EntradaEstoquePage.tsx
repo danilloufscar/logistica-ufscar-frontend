@@ -21,6 +21,7 @@ export function EntradaEstoquePage() {
     <Page aria-labelledby="entrada-titulo">
       <Eyebrow>Estoque</Eyebrow>
       <h1 id="entrada-titulo">Entrada de estoque</h1>
+      <S.Actions><ButtonLink to="/estoque">Consultar saldos</ButtonLink></S.Actions>
       <S.Layout>
         <S.Card aria-labelledby="nova-entrada-titulo">
           <h2 id="nova-entrada-titulo">Registrar entrada</h2>
@@ -37,13 +38,15 @@ export function EntradaEstoquePage() {
         <S.Card aria-labelledby="resumo-entrada-titulo" aria-live="polite">
           <h2 id="resumo-entrada-titulo">Última entrada registrada nesta tela</h2>
           {ultimaEntrada ? (
-            <S.Dados>
+            <><S.Dados>
               <div><dt>Produto</dt><dd>{ultimaEntrada.produto.nome} ({ultimaEntrada.produto.codigo})</dd></div>
               <div><dt>Quantidade recebida</dt><dd>{ultimaEntrada.quantidade.toLocaleString('pt-BR')} unidades</dd></div>
               <div><dt>Data da entrada</dt><dd>{formatarData(ultimaEntrada.data)}</dd></div>
               <div><dt>Saldo após esta entrada</dt><dd data-testid="saldo-apos-entrada">{ultimaEntrada.saldoAtual.toLocaleString('pt-BR')} unidades</dd></div>
               <div><dt>Registrada por</dt><dd>{ultimaEntrada.usuario.nome} · {formatarDataHora(ultimaEntrada.registradoEm)}</dd></div>
             </S.Dados>
+              <S.Actions><ButtonLink to="/estoque">Consultar estoque atualizado</ButtonLink></S.Actions>
+            </>
           ) : <S.Ajuda>A confirmação aparecerá aqui após o registro. A entrada soma a quantidade ao saldo do produto.</S.Ajuda>}
         </S.Card>
       </S.Layout>

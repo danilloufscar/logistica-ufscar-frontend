@@ -16,3 +16,11 @@ export interface EntradaEstoque {
 }
 
 export type CampoEntradaEstoque = keyof DadosEntradaEstoque
+export interface SaldoEstoque {
+  id: number
+  codigo: string
+  nome: string
+  saldo: number
+  estoqueMinimo: number
+  abaixoOuNoMinimo: boolean
+}

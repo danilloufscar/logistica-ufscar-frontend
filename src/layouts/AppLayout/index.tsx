@@ -25,7 +25,7 @@ export function AppLayout() {
             {navigationItems.filter((item) => !item.perfis || item.perfis.includes(usuario.perfil)).map((item) => (
               <li key={item.nome}>
                 {item.caminho ? (
-                  <S.MenuLink to={item.caminho} end={item.caminho === '/'} onClick={() => setMenuAberto(false)}>
+                  <S.MenuLink to={item.caminho} end={item.caminho === '/' || item.caminho === '/estoque'} onClick={() => setMenuAberto(false)}>
                     {item.nome}
                   </S.MenuLink>
                 ) : <S.FutureItem aria-disabled="true">{item.nome}<small>Em breve</small></S.FutureItem>}

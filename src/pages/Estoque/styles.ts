@@ -43,3 +43,17 @@ export const Dados = styled.dl`
   dt { color: ${({ theme }) => theme.colors.textoSecundario}; font-size: ${({ theme }) => theme.font.legenda.size}; }
   dd { margin: 4px 0 0; overflow-wrap: anywhere; }
 `
+
+export const Consulta = styled.div`
+  margin-top: 24px;
+`
+
+export const Situacao = styled.span<{ $alerta: boolean }>`
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: ${({ theme }) => theme.radius.pilula};
+  font-size: ${({ theme }) => theme.font.legenda.size};
+  font-weight: 600;
+  background: ${({ theme, $alerta }) => $alerta ? theme.status.ATRASADO.fundo : theme.status.ENTREGUE.fundo};
+  color: ${({ theme, $alerta }) => $alerta ? theme.status.ATRASADO.texto : theme.status.ENTREGUE.texto};
+`
