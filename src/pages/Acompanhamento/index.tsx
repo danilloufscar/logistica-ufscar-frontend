@@ -10,9 +10,14 @@ export function AcompanhamentoPage() {
     const { codigo: codigoUrl = '' } = useParams<{ codigo?: string }>()
     const navigate = useNavigate()
     const [campoCodigo, setCampoCodigo] = useState(codigoUrl)
+    const [codigoUrlAnterior, setCodigoUrlAnterior] = useState(codigoUrl)
+
+    if (codigoUrl !== codigoUrlAnterior) {
+        setCodigoUrlAnterior(codigoUrl)
+        setCampoCodigo(codigoUrl)
+    }
 
     useEffect(() => {
-        setCampoCodigo(codigoUrl)
         document.title = codigoUrl
             ? `Acompanhar Pedido ${codigoUrl.toUpperCase()} | SGLU`
             : 'Acompanhar Pedido | SGLU'
