@@ -1,5 +1,6 @@
 import { createBrowserRouter } from 'react-router-dom'
 import { LoginPage } from '@/pages/Login'
+import { AcompanhamentoPage } from '@/pages/Acompanhamento'
 import { InicioPage } from '@/pages/Inicio'
 import { EntradaEstoquePage } from '@/pages/Estoque/EntradaEstoquePage'
 import { SaldoEstoquePage } from '@/pages/Estoque/SaldoEstoquePage'
@@ -18,6 +19,8 @@ import { PERFIS_ADMINISTRACAO } from './navigation'
 
 export const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
+  { path: '/acompanhamento', element: <AcompanhamentoPage /> },
+  { path: '/acompanhamento/:codigo', element: <AcompanhamentoPage /> },
   {
     element: <ProtectedRoute />,
     children: [{
