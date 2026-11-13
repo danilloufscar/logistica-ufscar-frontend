@@ -1,4 +1,6 @@
 import { api, interpretarErroDeCadastro } from './api'
+import axios from 'axios'
+import type { ItemSemEstoque } from '@/types/pedido'
 import type { CampoPedido, DadosPedido, Pedido, ResumoPedido, StatusPedido } from '@/types/pedido'
 
 export async function listarPedidos(signal: AbortSignal): Promise<ResumoPedido[]> {
@@ -34,6 +36,12 @@ export async function avancarPedido(id: number, statusAtual: StatusPedido, signa
 }
 
 const CAMPO_PEDIDO = /^(clienteId|prazoEntrega|enderecoEntrega|itens|itens\.\d+\.(produtoId|quantidade))$/
+
+export function itensSemEstoque(erro: unknown): ItemSemEstoque[] | null {
+  if (!axios.isAxiosError(erro) || erro.response?.status !== 409) return null
+  const corpo = erro.response.data as { codigo?: string; itens?: ItemSemEstoque[] }
+  return corpo?.codigo === 'ESTOQUE_INSUFICIENTE' && Array.isArray(corpo.itens) ? corpo.itens : null
+}
 
 /** Converte as chaves de erro da API (`itens[1].quantidade`) nos nomes dos campos do formulário (`itens.1.quantidade`). */
 export function erroDeFormularioPedido(erro: unknown) {

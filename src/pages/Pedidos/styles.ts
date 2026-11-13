@@ -209,3 +209,18 @@ export const Marcador = styled.span<{ $situacao: 'concluido' | 'cancelado' | 'pr
   background: ${({ theme, $situacao }) =>
     $situacao === 'concluido' ? theme.colors.destaque : $situacao === 'cancelado' ? theme.colors.obrigatorio : theme.colors.branco};
 `
+export const AlertaEstoque = styled.section`
+  margin-top: 20px;
+  padding: 20px;
+  border: 1px solid ${({ theme }) => theme.colors.obrigatorio};
+  border-radius: ${({ theme }) => theme.radius.cartao};
+  background: ${({ theme }) => theme.colors.branco};
+  h2 { color: ${({ theme }) => theme.colors.obrigatorio}; font-size: ${({ theme }) => theme.font.subtitulo.size}; }
+  p { margin: 12px 0; line-height: 1.5; }
+`
+
+export const InformacaoDespacho = styled.p`
+  margin-top: 16px;
+  line-height: 1.5;
+  color: ${({ theme }) => theme.colors.textoSecundario};
+`

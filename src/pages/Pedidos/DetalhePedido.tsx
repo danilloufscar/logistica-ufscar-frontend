@@ -7,8 +7,9 @@ import { Table } from '@/components/TabelaDados/styles'
 import { Button, ButtonLink, Oculto, Page, PrimaryButton } from '@/components/ui'
 import { useConsulta } from '@/hooks/useConsulta'
 import { mensagemDeErro } from '@/services/api'
-import { avancarPedido, buscarPedido, cancelarPedido } from '@/services/pedidoService'
-import type { Pedido } from '@/types/pedido'
+import { avancarPedido, buscarPedido, cancelarPedido, itensSemEstoque } from '@/services/pedidoService'
+import type { ItemSemEstoque, Pedido } from '@/types/pedido'
+import { AlertaEstoque } from './AlertaEstoque'
 import {
   FLUXO_STATUS, ROTULO_STATUS, formatarData, formatarDataHora, idDePedido, permiteAlteracao, proximoStatus,
 } from '@/utils/pedido'
@@ -39,6 +40,7 @@ function DetalhePedido({ id }: { id: number }) {
   const pedido = consulta.dados
   const [acao, setAcao] = useState<Acao | null>(null)
   const [confirmandoCancelamento, setConfirmandoCancelamento] = useState(false)
+  const [faltas, setFaltas] = useState<ItemSemEstoque[] | null>(null)
   const requisicao = useRef<AbortController | null>(null)
 
   useEffect(() => () => requisicao.current?.abort(), [])
@@ -48,6 +50,7 @@ function DetalhePedido({ id }: { id: number }) {
     const controller = new AbortController()
     requisicao.current = controller
     setAcao(tipo)
+    setFaltas(null)
     try {
       const atualizado = await chamada(controller.signal)
       if (controller.signal.aborted) return
@@ -55,7 +58,9 @@ function DetalhePedido({ id }: { id: number }) {
       toast.success(sucesso(atualizado))
     } catch (erro) {
       if (controller.signal.aborted) return
-      toast.error(mensagemDeErro(erro, 'Não foi possível atualizar o pedido.'))
+      const insuficientes = itensSemEstoque(erro)
+      if (insuficientes) setFaltas(insuficientes)
+      else toast.error(mensagemDeErro(erro, 'Não foi possível atualizar o pedido.'))
       // O pedido pode ter mudado (outra pessoa, clique duplo ou falha de rede após a gravação).
       atualizar()
     } finally {
@@ -110,6 +115,11 @@ function DetalhePedido({ id }: { id: number }) {
           </S.Acoes>
         )}
       </S.Cabecalho>
+
+      {pedido?.status === 'EM_SEPARACAO' && (
+        <S.InformacaoDespacho>Ao despachar, o estoque de todos os itens será baixado. Se faltar saldo em algum produto, o pedido permanecerá em separação.</S.InformacaoDespacho>
+      )}
+      {faltas && pedido?.status === 'EM_SEPARACAO' && <AlertaEstoque itens={faltas} />}
 
       {!pedido ? (
         <EstadoConsulta textoCarregando="Carregando pedido…" erro={consulta.erro}

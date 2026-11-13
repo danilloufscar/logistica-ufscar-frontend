@@ -50,3 +50,11 @@ export interface DadosPedido {
 export type CampoPedido =
   | 'clienteId' | 'prazoEntrega' | 'enderecoEntrega' | 'itens'
   | `itens.${number}.produtoId` | `itens.${number}.quantidade`
+export interface ItemSemEstoque {
+  produtoId: number
+  codigo: string
+  nome: string
+  solicitado: number
+  disponivel: number
+  faltante: number
+}

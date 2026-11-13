@@ -272,3 +272,11 @@ A rota protegida `/estoque` e o menu **Saldo de estoque** estão disponíveis pa
 **Atualizar saldos** consulta novamente o backend. **Registrar entrada** abre o RF08; após salvar, **Consultar estoque atualizado** volta à lista e faz uma nova consulta. Uma falha ao atualizar mantém os dados anteriores com aviso explícito de lista desatualizada e opção de tentar novamente. A consulta ocorre ao abrir a tela ou atualizar manualmente, sem polling automático.
 
 Para validar, use produtos com mínimo 5 e saldos 4, 5 e 6: apenas os dois primeiros devem estar em alerta. Um produto com saldo e mínimo zero também fica em alerta. Registre entradas até passar do mínimo e retorne à consulta para conferir saldo e situação. Repita com Operador.
+
+## Despacho com estoque — RF09
+
+No detalhe do pedido, **Avançar para Despachado** usa a rota existente de avanço e informa que haverá baixa dos itens. O servidor é responsável pela conferência e pela transação completa.
+
+Quando recebe `ESTOQUE_INSUFICIENTE` (409), a tela mantém o pedido em separação e exibe os produtos afetados, código, quantidade solicitada, disponível e faltante. O alerta permanece visível e oferece acesso a **Registrar entrada** e **Consultar saldos**. Após repor o estoque, retorne ao pedido e tente despachar novamente. Durante o envio, o botão fica bloqueado; não há repetição automática do POST. Após falha, a tela consulta o pedido novamente para conferir seu estado.
+
+Valide com os dois perfis: falta de saldo não pode mudar o status nem baixar parcialmente; após reposição, o despacho deve avançar e os saldos devem aparecer atualizados no RF10. Saldo exato é suficiente, mesmo ficando abaixo do mínimo após a baixa. Trânsito e entrega não baixam novamente. O backend deve estar atualizado com a migração V6.
