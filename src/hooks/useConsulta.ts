@@ -5,6 +5,8 @@ interface EstadoConsulta<T> {
   dados: T | null
   erro: string | null
   carregando: boolean
+  /** Momento da última resposta bem-sucedida. */
+  atualizadoEm: Date | null
 }
 
 /**
@@ -13,14 +15,14 @@ interface EstadoConsulta<T> {
  * `carregar` deve ser estável (uma função de `services` ou memorizada com useCallback).
  */
 export function useConsulta<T>(carregar: (signal: AbortSignal) => Promise<T>, mensagemPadrao: string) {
-  const [estado, setEstado] = useState<EstadoConsulta<T>>({ dados: null, erro: null, carregando: true })
+  const [estado, setEstado] = useState<EstadoConsulta<T>>({ dados: null, erro: null, carregando: true, atualizadoEm: null })
   const [tentativa, setTentativa] = useState(0)
 
   useEffect(() => {
     const controller = new AbortController()
     carregar(controller.signal)
       .then((dados) => {
-        if (!controller.signal.aborted) setEstado({ dados, erro: null, carregando: false })
+        if (!controller.signal.aborted) setEstado({ dados, erro: null, carregando: false, atualizadoEm: new Date() })
       })
       .catch((erro: unknown) => {
         if (controller.signal.aborted) return
@@ -35,7 +37,7 @@ export function useConsulta<T>(carregar: (signal: AbortSignal) => Promise<T>, me
   }, [])
 
   /** Usa dados já recebidos da API (por exemplo, a resposta de uma alteração) sem nova consulta. */
-  const substituir = useCallback((dados: T) => setEstado({ dados, erro: null, carregando: false }), [])
+  const substituir = useCallback((dados: T) => setEstado({ dados, erro: null, carregando: false, atualizadoEm: new Date() }), [])
 
   return { ...estado, atualizar, substituir }
 }

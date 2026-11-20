@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { api, interpretarErroDeCadastro } from './api'
+import type { StatusPedido } from '@/types/pedido'
 
 export const TIPOS_OCORRENCIA = {
   ATRASO: 'Atraso', AVARIA: 'Avaria', DESTINATARIO_AUSENTE: 'Destinatário ausente',
@@ -18,10 +19,6 @@ export interface Ocorrencia {
   descricao: string
 }
 
-export async function listarOcorrencias(id: number, signal: AbortSignal): Promise<Ocorrencia[]> {
-  const { data } = await api.get<(Ocorrencia | { tipo: 'STATUS' })[]>(`/pedidos/${id}/timeline`, { signal })
-  return data.filter((evento): evento is Ocorrencia => evento.tipo === 'OCORRENCIA')
-}
 
 export async function registrarOcorrencia(id: number, dados: DadosOcorrencia, signal: AbortSignal): Promise<Ocorrencia> {
   const { data } = await api.post<Ocorrencia>(`/pedidos/${id}/ocorrencias`, dados, { signal })
@@ -37,12 +34,15 @@ export function erroDeOcorrencia(erro: unknown) {
   return resultado
 }
 
+/** Evento de `GET /api/pedidos/{id}/timeline` (RF13), em ordem cronológica. */
 export interface EventoTimeline {
   tipo: 'STATUS' | 'OCORRENCIA'
   dataHora: string
   dataOcorrencia: string | null
   usuario: { id: number; nome: string }
+  status: StatusPedido | null
   statusRotulo: string | null
+  tipoOcorrencia: DadosOcorrencia['tipo'] | null
   tipoOcorrenciaRotulo: string | null
   descricao: string
 }

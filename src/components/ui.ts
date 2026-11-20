@@ -30,6 +30,20 @@ export const Page = styled.section`
   }
 `
 
+/** Trilha de navegação acima do título, como "Estoque / Registrar entrada". */
+export const Trilha = styled.nav`
+  margin-bottom: 4px;
+  font-size: ${({ theme }) => theme.font.legenda.size};
+  color: ${({ theme }) => theme.colors.textoSecundario};
+  a { color: inherit; text-decoration: none; }
+  a:hover { color: ${({ theme }) => theme.colors.destaque}; text-decoration: underline; }
+`
+
+/** Asterisco de campo obrigatório (decorativo: o campo usa aria-required). */
+export const Obrigatorio = styled.span`
+  color: ${({ theme }) => theme.colors.obrigatorio};
+`
+
 export const Eyebrow = styled.p`
   margin-bottom: 4px;
   font-size: ${({ theme }) => theme.font.legenda.size};

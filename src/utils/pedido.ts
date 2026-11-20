@@ -44,6 +44,12 @@ export function hojeEmSaoPaulo(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(new Date())
 }
 
+/** Dia (AAAA-MM-DD) de um instante ISO 8601 no calendário de São Paulo, ou '' se inválido. */
+export function diaEmSaoPaulo(instante: string): string {
+  const data = new Date(instante)
+  return Number.isNaN(data.getTime()) ? '' : new Intl.DateTimeFormat('en-CA', { timeZone: 'America/Sao_Paulo' }).format(data)
+}
+
 /** Formata uma data AAAA-MM-DD como DD/MM/AAAA, sem conversão de fuso. */
 export function formatarData(data: string): string {
   const valor = parseISO(data)

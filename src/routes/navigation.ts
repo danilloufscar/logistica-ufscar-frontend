@@ -15,6 +15,7 @@ export const navigationItems: readonly NavigationItem[] = [
   { nome: 'Produtos', caminho: '/produtos' },
   { nome: 'Entrada de estoque', caminho: '/estoque/entradas' },
   { nome: 'Ajuste de inventário', caminho: '/estoque/ajustes', perfis: PERFIS_ADMINISTRACAO },
-  { nome: 'Saldo de estoque', caminho: '/estoque' },
+  { nome: 'Estoque', caminho: '/estoque' },
   { nome: 'Pedidos', caminho: '/pedidos' },
+  { nome: 'Acompanhamento', caminho: '/entregas' },
 ]

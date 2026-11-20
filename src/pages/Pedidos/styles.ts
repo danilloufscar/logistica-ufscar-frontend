@@ -1,6 +1,8 @@
 import styled from 'styled-components'
 import { Link } from 'react-router-dom'
-import { cartao } from '@/components/ui'
+import { Field, cartao } from '@/components/ui'
+
+export { Obrigatorio, Trilha } from '@/components/ui'
 
 /* Cabeçalho comum: trilha, título e ações à direita. */
 
@@ -12,13 +14,6 @@ export const Cabecalho = styled.div`
   gap: 16px;
 `
 
-export const Trilha = styled.nav`
-  margin-bottom: 4px;
-  font-size: ${({ theme }) => theme.font.legenda.size};
-  color: ${({ theme }) => theme.colors.textoSecundario};
-  a { color: inherit; text-decoration: none; }
-  a:hover { color: ${({ theme }) => theme.colors.destaque}; text-decoration: underline; }
-`
 
 export const Titulo = styled.div`
   display: flex;
@@ -121,9 +116,6 @@ export const LinhaItem = styled.div`
   }
 `
 
-export const Obrigatorio = styled.span`
-  color: ${({ theme }) => theme.colors.obrigatorio};
-`
 
 export const Rodape = styled.div`
   display: flex;
@@ -187,28 +179,7 @@ export const Codigo = styled.strong`
   letter-spacing: 0.04em;
 `
 
-export const LinhaDoTempo = styled.ol`
-  display: grid;
-  gap: 14px;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  li { display: grid; grid-template-columns: 10px minmax(0, 1fr); gap: 12px; }
-  strong { display: block; font-weight: ${({ theme }) => theme.font.textoForte.weight}; }
-  li > div > span { display: block; margin-top: 2px; font-size: ${({ theme }) => theme.font.legenda.size}; color: ${({ theme }) => theme.colors.textoSecundario}; }
-  li[data-situacao='pendente'] strong { font-weight: 500; color: ${({ theme }) => theme.colors.textoSecundario}; }
-`
 
-export const Marcador = styled.span<{ $situacao: 'concluido' | 'cancelado' | 'proximo' | 'pendente' }>`
-  width: 10px;
-  height: 10px;
-  margin-top: 5px;
-  border-radius: 50%;
-  border: 1.5px solid ${({ theme, $situacao }) =>
-    $situacao === 'concluido' ? theme.colors.destaque : $situacao === 'cancelado' ? theme.colors.obrigatorio : theme.colors.bordaCampo};
-  background: ${({ theme, $situacao }) =>
-    $situacao === 'concluido' ? theme.colors.destaque : $situacao === 'cancelado' ? theme.colors.obrigatorio : theme.colors.branco};
-`
 export const AlertaEstoque = styled.section`
   margin-top: 20px;
   padding: 20px;
@@ -219,16 +190,56 @@ export const AlertaEstoque = styled.section`
   p { margin: 12px 0; line-height: 1.5; }
 `
 
-export const InformacaoDespacho = styled.p`
-  margin-top: 16px;
+
+
+/* Registrar ocorrência */
+
+export const Contexto = styled.p`
+  font-weight: 500;
+`
+
+/** Opções exclusivas em cartões clicáveis (rádio), como o tipo da ocorrência. */
+export const Opcoes = styled.fieldset`
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  legend { padding: 0; margin-bottom: 8px; font-size: ${({ theme }) => theme.font.rotulo.size}; font-weight: ${({ theme }) => theme.font.rotulo.weight}; }
+  label {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: ${({ theme }) => theme.size.controle};
+    padding: 10px 14px;
+    border: 1px solid ${({ theme }) => theme.colors.bordaCampo};
+    border-radius: ${({ theme }) => theme.radius.campo};
+    background: ${({ theme }) => theme.colors.branco};
+    cursor: pointer;
+  }
+  label:hover { background: ${({ theme }) => theme.colors.fundoHover}; }
+  label:has(input:checked) {
+    border-color: ${({ theme }) => theme.colors.destaque};
+    background: ${({ theme }) => theme.colors.destaqueClaro};
+  }
+  label:has(input:focus-visible) { outline: 2px solid ${({ theme }) => theme.colors.destaque}; outline-offset: 2px; }
+  input { width: 18px; height: 18px; margin: 0; accent-color: ${({ theme }) => theme.colors.destaque}; }
+  &[aria-invalid='true'] label { border-color: ${({ theme }) => theme.colors.obrigatorio}; }
+`
+
+export const CampoCurto = styled(Field)`
+  max-width: 280px;
+`
+
+export const Ajuda = styled.p`
+  font-size: ${({ theme }) => theme.font.legenda.size};
   line-height: 1.5;
   color: ${({ theme }) => theme.colors.textoSecundario};
 `
 
-export const ListaOcorrencias = styled.ul`
-  list-style: none;
-  padding: 0;
+export const LinkSecundario = styled(Link)`
+  display: inline-block;
   margin-top: 20px;
-  li { padding: 16px 0; border-top: 1px solid ${({ theme }) => theme.colors.borda}; overflow-wrap: anywhere; }
-  p { margin-top: 8px; white-space: pre-wrap; }
+  font-weight: 600;
 `

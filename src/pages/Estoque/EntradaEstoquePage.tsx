@@ -1,69 +1,70 @@
-import { useEffect, useMemo, useState } from 'react'
-import { useForm } from 'react-hook-form'
-import { Button, ButtonLink, ErrorText, Eyebrow, Field, Page, PrimaryButton } from '@/components/ui'
+import { useEffect, useMemo } from 'react'
+import { useForm, useWatch } from 'react-hook-form'
+import { Link, useNavigate } from 'react-router-dom'
+import { Table } from '@/components/TabelaDados/styles'
+import { Button, ButtonLink, ErrorText, Field, Obrigatorio, Page, PrimaryButton, Trilha } from '@/components/ui'
 import { useConsulta } from '@/hooks/useConsulta'
 import { useEnvioCadastro } from '@/hooks/useEnvioCadastro'
-import { listarProdutos } from '@/services/produtoService'
-import { erroDeEntrada, registrarEntrada } from '@/services/estoqueService'
-import type { EntradaEstoque } from '@/types/estoque'
-import type { Produto } from '@/types/produto'
-import { formatarData, formatarDataHora, hojeEmSaoPaulo } from '@/utils/pedido'
+import { erroDeEntrada, listarSaldos, listarUltimasEntradas, registrarEntrada } from '@/services/estoqueService'
+import type { MovimentacaoEstoque, SaldoEstoque } from '@/types/estoque'
+import { rotuloProduto, unidades } from '@/utils/estoque'
+import { formatarData, hojeEmSaoPaulo } from '@/utils/pedido'
 import * as S from './styles'
 
 interface ValoresEntrada { produtoId: string; quantidade: string; data: string }
 
+const MAIOR_QUANTIDADE = 2_147_483_647
+const quantidadeValida = (valor: string) => /^\d+$/.test(valor.trim()) && Number(valor) > 0 && Number(valor) <= MAIOR_QUANTIDADE
+
+/** Tela 8: entrada de produtos no armazém (RF08). */
 export function EntradaEstoquePage() {
-  useEffect(() => { document.title = 'Entrada de estoque | SGLU' }, [])
-  const consulta = useConsulta(listarProdutos, 'Não foi possível carregar os produtos.')
-  const [ultimaEntrada, setUltimaEntrada] = useState<EntradaEstoque | null>(null)
+  useEffect(() => { document.title = 'Registrar entrada | SGLU' }, [])
+  const saldos = useConsulta(listarSaldos, 'Não foi possível carregar os produtos.')
+  const entradas = useConsulta(listarUltimasEntradas, 'Não foi possível carregar as últimas entradas.')
+  const { atualizar: atualizarSaldos } = saldos
+  const { atualizar: atualizarEntradas } = entradas
 
   return (
     <Page aria-labelledby="entrada-titulo">
-      <Eyebrow>Estoque</Eyebrow>
-      <h1 id="entrada-titulo">Entrada de estoque</h1>
-      <S.Actions><ButtonLink to="/estoque">Consultar saldos</ButtonLink></S.Actions>
+      <Trilha aria-label="Você está em"><Link to="/estoque">Estoque</Link> / Registrar entrada</Trilha>
+      <h1 id="entrada-titulo">Registrar entrada de produtos</h1>
       <S.Layout>
-        <S.Card aria-labelledby="nova-entrada-titulo">
-          <h2 id="nova-entrada-titulo">Registrar entrada</h2>
-          {consulta.dados === null ? (
-            consulta.carregando ? <p role="status">Carregando produtos…</p> : (
-              <><ErrorText role="alert">{consulta.erro}</ErrorText>
-                <S.Actions><Button onClick={consulta.atualizar}>Tentar novamente</Button></S.Actions></>
+        <S.Card aria-label="Nova entrada">
+          {saldos.dados === null ? (
+            saldos.carregando ? <S.Estado role="status">Carregando produtos…</S.Estado> : (
+              <S.Estado>
+                <ErrorText role="alert">{saldos.erro}</ErrorText>
+                <Button type="button" onClick={atualizarSaldos}>Tentar novamente</Button>
+              </S.Estado>
             )
-          ) : consulta.dados.length === 0 ? (
-            <><p>Nenhum produto cadastrado. Cadastre um produto antes de registrar uma entrada.</p>
-              <S.Actions><ButtonLink to="/produtos">Cadastrar produto</ButtonLink></S.Actions></>
-          ) : <FormularioEntrada produtos={consulta.dados} aoRegistrar={setUltimaEntrada} />}
+          ) : saldos.dados.length === 0 ? (
+            <S.Estado>
+              <p>Nenhum produto cadastrado. Cadastre um produto antes de registrar uma entrada.</p>
+              <ButtonLink to="/produtos">Cadastrar produto</ButtonLink>
+            </S.Estado>
+          ) : (
+            <FormularioEntrada produtos={saldos.dados} aoRegistrar={() => { atualizarSaldos(); atualizarEntradas() }} />
+          )}
         </S.Card>
-        <S.Card aria-labelledby="resumo-entrada-titulo" aria-live="polite">
-          <h2 id="resumo-entrada-titulo">Última entrada registrada nesta tela</h2>
-          {ultimaEntrada ? (
-            <><S.Dados>
-              <div><dt>Produto</dt><dd>{ultimaEntrada.produto.nome} ({ultimaEntrada.produto.codigo})</dd></div>
-              <div><dt>Quantidade recebida</dt><dd>{ultimaEntrada.quantidade.toLocaleString('pt-BR')} unidades</dd></div>
-              <div><dt>Data da entrada</dt><dd>{formatarData(ultimaEntrada.data)}</dd></div>
-              <div><dt>Saldo após esta entrada</dt><dd data-testid="saldo-apos-entrada">{ultimaEntrada.saldoAtual.toLocaleString('pt-BR')} unidades</dd></div>
-              <div><dt>Registrada por</dt><dd>{ultimaEntrada.usuario.nome} · {formatarDataHora(ultimaEntrada.registradoEm)}</dd></div>
-            </S.Dados>
-              <S.Actions><ButtonLink to="/estoque">Consultar estoque atualizado</ButtonLink></S.Actions>
-            </>
-          ) : <S.Ajuda>A confirmação aparecerá aqui após o registro. A entrada soma a quantidade ao saldo do produto.</S.Ajuda>}
-        </S.Card>
+        <UltimasEntradas consulta={entradas} />
       </S.Layout>
     </Page>
   )
 }
 
-function FormularioEntrada({ produtos, aoRegistrar }: { produtos: Produto[]; aoRegistrar: (entrada: EntradaEstoque) => void }) {
+function FormularioEntrada({ produtos, aoRegistrar }: { produtos: SaldoEstoque[]; aoRegistrar: () => void }) {
+  const navigate = useNavigate()
   const inicial = useMemo<ValoresEntrada>(() => ({ produtoId: '', quantidade: '', data: hojeEmSaoPaulo() }), [])
   const form = useForm<ValoresEntrada>({ defaultValues: inicial, mode: 'onSubmit', reValidateMode: 'onChange' })
-  const { register, formState: { errors, isSubmitting } } = form
-  const { erroGeral, limparErroGeral, aoEnviar, cancelar } = useEnvioCadastro(form, {
+  const { register, control, formState: { errors, isSubmitting } } = form
+  const [produtoId, quantidade] = useWatch({ control, name: ['produtoId', 'quantidade'] })
+  const selecionado = produtos.find((produto) => String(produto.id) === produtoId)
+  const { erroGeral, limparErroGeral, aoEnviar } = useEnvioCadastro(form, {
     valoresIniciais: inicial,
     primeiroCampo: 'produtoId',
     enviar: (valores, signal) => registrarEntrada({ produtoId: Number(valores.produtoId), quantidade: Number(valores.quantidade), data: valores.data }, signal),
     interpretarErro: erroDeEntrada,
-    mensagemSucesso: 'Entrada registrada. Saldo atualizado.',
+    mensagemSucesso: (entrada) => `Entrada registrada. Saldo de ${entrada.produto.nome}: ${unidades(entrada.saldoAtual)}.`,
     aoCadastrar: aoRegistrar,
   })
 
@@ -72,39 +73,92 @@ function FormularioEntrada({ produtos, aoRegistrar }: { produtos: Produto[]; aoR
       {erroGeral && <ErrorText role="alert">{erroGeral}</ErrorText>}
       <fieldset disabled={isSubmitting}>
         <Field>
-          <label htmlFor="entrada-produto">Produto</label>
+          <label htmlFor="entrada-produto">Produto<Obrigatorio aria-hidden="true"> *</Obrigatorio></label>
           <select id="entrada-produto" aria-required="true" aria-invalid={Boolean(errors.produtoId)}
-            aria-describedby={errors.produtoId ? 'entrada-produto-erro' : undefined}
+            aria-describedby={[selecionado && 'entrada-produto-saldo', errors.produtoId && 'entrada-produto-erro'].filter(Boolean).join(' ') || undefined}
             {...register('produtoId', { required: 'Selecione o produto.' })}>
             <option value="">Selecione um produto</option>
-            {produtos.map(produto => <option key={produto.id} value={String(produto.id)}>{produto.nome} ({produto.codigo})</option>)}
+            {produtos.map((produto) => <option key={produto.id} value={String(produto.id)}>{rotuloProduto(produto)}</option>)}
           </select>
+          {selecionado && (
+            <S.Ajuda id="entrada-produto-saldo">
+              Saldo atual: {unidades(selecionado.saldo)} · mínimo: {unidades(selecionado.estoqueMinimo)}
+            </S.Ajuda>
+          )}
           {errors.produtoId && <ErrorText id="entrada-produto-erro" role="alert">{errors.produtoId.message}</ErrorText>}
         </Field>
-        <Field>
-          <label htmlFor="entrada-quantidade">Quantidade</label>
-          <input id="entrada-quantidade" inputMode="numeric" autoComplete="off" aria-required="true"
-            aria-invalid={Boolean(errors.quantidade)} aria-describedby={errors.quantidade ? 'entrada-quantidade-erro' : undefined}
-            {...register('quantidade', {
-              setValueAs: (valor: string) => valor.trim(), required: 'Informe a quantidade.',
-              pattern: { value: /^\d+$/, message: 'Use uma quantidade inteira.' },
-              validate: valor => (Number(valor) > 0 && Number(valor) <= 2_147_483_647) || 'Informe entre 1 e 2.147.483.647 unidades.',
-            })} />
-          {errors.quantidade && <ErrorText id="entrada-quantidade-erro" role="alert">{errors.quantidade.message}</ErrorText>}
-        </Field>
-        <Field>
-          <label htmlFor="entrada-data">Data da entrada</label>
-          <input id="entrada-data" type="date" aria-required="true" aria-invalid={Boolean(errors.data)}
-            aria-describedby={errors.data ? 'entrada-data-erro' : undefined}
-            {...register('data', { required: 'Informe a data da entrada.' })} />
-          {errors.data && <ErrorText id="entrada-data-erro" role="alert">{errors.data.message}</ErrorText>}
-        </Field>
+        <S.Linha $colunas={2}>
+          <Field>
+            <label htmlFor="entrada-quantidade">Quantidade<Obrigatorio aria-hidden="true"> *</Obrigatorio></label>
+            <input id="entrada-quantidade" inputMode="numeric" autoComplete="off" aria-required="true"
+              aria-invalid={Boolean(errors.quantidade)} aria-describedby={errors.quantidade ? 'entrada-quantidade-erro' : undefined}
+              {...register('quantidade', {
+                setValueAs: (valor: string) => valor.trim(), required: 'Informe a quantidade.',
+                pattern: { value: /^\d+$/, message: 'Use uma quantidade inteira.' },
+                validate: (valor) => quantidadeValida(valor) || 'Informe uma quantidade maior que zero.',
+              })} />
+            {errors.quantidade && <ErrorText id="entrada-quantidade-erro" role="alert">{errors.quantidade.message}</ErrorText>}
+          </Field>
+          <Field>
+            <label htmlFor="entrada-data">Data<Obrigatorio aria-hidden="true"> *</Obrigatorio></label>
+            <input id="entrada-data" type="date" aria-required="true" aria-invalid={Boolean(errors.data)}
+              aria-describedby={errors.data ? 'entrada-data-erro' : undefined}
+              {...register('data', { required: 'Informe a data da entrada.' })} />
+            {errors.data && <ErrorText id="entrada-data-erro" role="alert">{errors.data.message}</ErrorText>}
+          </Field>
+        </S.Linha>
+        {selecionado && quantidadeValida(quantidade) && (
+          <S.InfoSaldo aria-live="polite">
+            Saldo após a entrada: <strong>{unidades(selecionado.saldo + Number(quantidade))}</strong>
+          </S.InfoSaldo>
+        )}
       </fieldset>
-      <S.Ajuda>Todos os campos são obrigatórios. Informe a quantidade recebida em unidades inteiras.</S.Ajuda>
-      <S.Actions>
+      <S.Botoes>
         <PrimaryButton type="submit" disabled={isSubmitting}>{isSubmitting ? 'Registrando…' : 'Registrar entrada'}</PrimaryButton>
-        <Button type="button" disabled={isSubmitting} onClick={cancelar}>Limpar campos</Button>
-      </S.Actions>
+        <Button type="button" disabled={isSubmitting} onClick={() => navigate('/estoque')}>Cancelar</Button>
+      </S.Botoes>
     </S.Form>
+  )
+}
+
+interface ConsultaEntradas { dados: MovimentacaoEstoque[] | null; erro: string | null; carregando: boolean; atualizar: () => void }
+
+function UltimasEntradas({ consulta }: { consulta: ConsultaEntradas }) {
+  const { dados, erro, carregando, atualizar } = consulta
+  return (
+    <S.CardTabela aria-labelledby="ultimas-entradas-titulo" aria-busy={carregando}>
+      <h2 id="ultimas-entradas-titulo">Últimas entradas</h2>
+      {dados === null && carregando && <S.EstadoTabela role="status">Carregando…</S.EstadoTabela>}
+      {erro && (
+        <S.EstadoTabela>
+          <ErrorText role="alert">{erro}</ErrorText>
+          <Button type="button" onClick={atualizar} disabled={carregando}>Tentar novamente</Button>
+        </S.EstadoTabela>
+      )}
+      {dados?.length === 0 && <S.EstadoTabela>Nenhuma entrada registrada ainda.</S.EstadoTabela>}
+      {dados && dados.length > 0 && (
+        <Table>
+          <caption>Entradas mais recentes</caption>
+          <thead>
+            <tr>
+              <th scope="col">Data</th>
+              <th scope="col">Produto</th>
+              <th scope="col" data-alinhamento="direita">Quantidade</th>
+              <th scope="col" data-alinhamento="direita">Usuário</th>
+            </tr>
+          </thead>
+          <tbody>
+            {dados.map((entrada) => (
+              <tr key={entrada.id}>
+                <td data-label="Data" data-quebra="nunca">{formatarData(entrada.data)}</td>
+                <td data-label="Produto">{entrada.produtoNome}</td>
+                <td data-label="Quantidade" data-alinhamento="direita">+{entrada.quantidade.toLocaleString('pt-BR')}</td>
+                <td data-label="Usuário" data-alinhamento="direita">{entrada.usuarioResponsavel}</td>
+              </tr>
+            ))}
+          </tbody>
+        </Table>
+      )}
+    </S.CardTabela>
   )
 }

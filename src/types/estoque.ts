@@ -50,6 +50,8 @@ export interface MovimentacaoEstoque {
   usuarioResponsavel: string
   pedidoId: number | null
   justificativa: string | null
+  /** Saldo do produto logo após a movimentação; nulo em registros sem essa informação. */
+  saldoApos: number | null
 }
 
 export interface SaldoEstoque {

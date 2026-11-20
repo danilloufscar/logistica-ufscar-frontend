@@ -29,6 +29,12 @@ export async function listarSaldos(signal: AbortSignal): Promise<SaldoEstoque[]>
   return data
 }
 
+/** Entradas mais recentes de todos os produtos, para a tela de registro (RF08). */
+export async function listarUltimasEntradas(signal: AbortSignal): Promise<MovimentacaoEstoque[]> {
+  const { data } = await api.get<MovimentacaoEstoque[]>('/estoque/entradas', { params: { limite: 5 }, signal })
+  return data
+}
+
 export async function registrarEntrada(dados: DadosEntradaEstoque, signal: AbortSignal): Promise<EntradaEstoque> {
   const { data } = await api.post<EntradaEstoque>('/estoque/entradas', dados, { signal })
   return data

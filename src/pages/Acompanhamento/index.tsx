@@ -1,11 +1,37 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
+import { format, isValid, parseISO } from 'date-fns'
+import { LinhaDoTempo, type EtapaLinhaDoTempo } from '@/components/LinhaDoTempo'
 import { SeloStatus } from '@/components/SeloStatus'
 import { PrimaryButton } from '@/components/ui'
 import { useAcompanhamentoPolling } from '@/hooks/useAcompanhamentoPolling'
-import { formatarData, formatarDataHora } from '@/utils/pedido'
+import type { AcompanhamentoPedido } from '@/types/acompanhamento'
+import { FLUXO_STATUS, ROTULO_STATUS, formatarData } from '@/utils/pedido'
 import * as S from './styles'
 
+function quando(dataHora: string) {
+    const valor = parseISO(dataHora)
+    return isValid(valor) ? format(valor, "dd/MM/yyyy 'às' HH:mm") : dataHora
+}
+
+/** Etapas registradas e, enquanto o pedido estiver aberto, as que ainda faltam (RN01). */
+function etapasPublicas(pedido: AcompanhamentoPedido): EtapaLinhaDoTempo[] {
+    const etapas: EtapaLinhaDoTempo[] = pedido.timeline.map((etapa, indice) => ({
+        chave: `${etapa.status}-${indice}`,
+        titulo: etapa.status === 'CRIADO' ? 'Pedido criado' : (etapa.statusRotulo || ROTULO_STATUS[etapa.status]),
+        situacao: etapa.status === 'CANCELADO' ? 'cancelado' : 'concluido',
+        detalhe: quando(etapa.dataHora),
+    }))
+    const atual = FLUXO_STATUS.indexOf(pedido.status)
+    if (atual >= 0) {
+        for (const status of FLUXO_STATUS.slice(atual + 1)) {
+            etapas.push({ chave: `pendente-${status}`, titulo: ROTULO_STATUS[status], situacao: 'pendente' })
+        }
+    }
+    return etapas
+}
+
+/** Tela 13: Portal do Cliente, consulta pública pelo código do pedido (RF17). */
 export function AcompanhamentoPage() {
     const { codigo: codigoUrl = '' } = useParams<{ codigo?: string }>()
     const navigate = useNavigate()
@@ -18,18 +44,10 @@ export function AcompanhamentoPage() {
     }
 
     useEffect(() => {
-        document.title = codigoUrl
-            ? `Acompanhar Pedido ${codigoUrl.toUpperCase()} | SGLU`
-            : 'Acompanhar Pedido | SGLU'
+        document.title = codigoUrl ? `Pedido ${codigoUrl.toUpperCase()} | Logística UFSCar` : 'Onde está meu pedido? | Logística UFSCar'
     }, [codigoUrl])
 
-    const {
-        dados,
-        carregando,
-        atualizandoEmSegundoPlano,
-        erro,
-        ultimaAtualizacao,
-    } = useAcompanhamentoPolling(codigoUrl)
+    const { dados, carregando, erro, ultimaAtualizacao } = useAcompanhamentoPolling(codigoUrl)
 
     function aoBuscar(e: React.FormEvent) {
         e.preventDefault()
@@ -44,95 +62,48 @@ export function AcompanhamentoPage() {
         <S.Container>
             <S.Conteudo>
                 <S.Topo>
-                    <h1>Acompanhamento de Pedido</h1>
-                    <Link to="/login">Área restrita</Link>
+                    <h1>Onde está meu pedido?</h1>
+                    <p>Digite o código de consulta que você recebeu da Logística UFSCar. Não é preciso login.</p>
                 </S.Topo>
 
-                <S.Cartao aria-labelledby="busca-titulo">
-                    <h2 id="busca-titulo">Consultar pedido</h2>
-                    <S.FormBusca onSubmit={aoBuscar}>
-                        <label>
-                            Código de consulta
-                            <input
-                                type="text"
-                                value={campoCodigo}
-                                onChange={(e) => setCampoCodigo(e.target.value)}
-                                placeholder="Ex.: K7QM2XPA"
-                                maxLength={16}
-                                required
-                            />
-                        </label>
-                        <PrimaryButton type="submit" disabled={carregando}>
-                            {carregando ? 'Consultando…' : 'Consultar'}
-                        </PrimaryButton>
-                    </S.FormBusca>
-                </S.Cartao>
+                <S.FormBusca onSubmit={aoBuscar} role="search">
+                    <label htmlFor="codigo-pedido">Código do pedido</label>
+                    <div>
+                        <input id="codigo-pedido" type="text" value={campoCodigo} onChange={(e) => setCampoCodigo(e.target.value)}
+                            placeholder="Ex.: P4X8N2TQ" maxLength={8} autoComplete="off" spellCheck={false}
+                            autoCapitalize="characters" aria-describedby="codigo-ajuda" required />
+                        <PrimaryButton type="submit" disabled={carregando}>{carregando ? 'Consultando…' : 'Consultar'}</PrimaryButton>
+                    </div>
+                </S.FormBusca>
 
                 {erro && <S.AvisoErro role="alert">{erro}</S.AvisoErro>}
 
                 {dados && (
-                    <>
-                        <S.BarraStatusAtualizacao role="status" aria-live="polite">
-                            <span>
-                                {encerrado
-                                    ? 'Pedido encerrado — atualização automática finalizada.'
-                                    : atualizandoEmSegundoPlano
-                                        ? 'Atualizando dados do pedido…'
-                                        : `Atualização automática ativa a cada ${dados.intervaloAtualizacaoSegundos} segundos.`}
-                            </span>
-                            {ultimaAtualizacao && (
-                                <span>
-                                    Última verificação: {ultimaAtualizacao.toLocaleTimeString('pt-BR')}
-                                </span>
-                            )}
-                        </S.BarraStatusAtualizacao>
-
-                        <S.Cartao aria-labelledby="resumo-titulo">
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', gap: 8 }}>
-                                <h2 id="resumo-titulo" style={{ margin: 0 }}>Pedido {dados.codigo}</h2>
-                                <div style={{ display: 'flex', gap: 8 }}>
-                                    <SeloStatus status={dados.status} />
-                                    {dados.atrasado && <SeloStatus status="ATRASADO" />}
-                                </div>
+                    <S.Cartao aria-label={`Pedido ${dados.codigo}`}>
+                        <S.Resumo>
+                            <div>
+                                <dt>Status atual</dt>
+                                <dd><SeloStatus status={dados.status} /></dd>
                             </div>
-
-                            <S.GradeDados>
-                                <div>
-                                    <dt>Cliente</dt>
-                                    <dd>{dados.clienteNome}</dd>
-                                </div>
-                                <div>
-                                    <dt>Prazo de entrega</dt>
-                                    <dd>{formatarData(dados.prazoEntrega)}</dd>
-                                </div>
-                                <div>
-                                    <dt>Endereço de entrega</dt>
-                                    <dd>{dados.enderecoEntrega}</dd>
-                                </div>
-                            </S.GradeDados>
-                        </S.Cartao>
-
-                        <S.Cartao aria-labelledby="timeline-titulo">
-                            <h2 id="timeline-titulo">Histórico e ocorrências</h2>
-                            <S.ListaTimeline>
-                                {dados.timeline.map((evento, idx) => (
-                                    <li key={`${evento.tipo}-${evento.dataHora}-${idx}`} data-tipo={evento.tipo}>
-                                        <strong>
-                                            {evento.tipo === 'STATUS'
-                                                ? (evento.statusRotulo ?? evento.descricao)
-                                                : `Ocorrência: ${evento.tipoOcorrenciaRotulo ?? 'Registro'}`}
-                                        </strong>
-                                        {evento.tipo === 'OCORRENCIA' && <div>{evento.descricao}</div>}
-                                        <span>
-                                            {formatarDataHora(evento.dataHora)}{evento.usuario && ` · ${evento.usuario.nome}`}
-                                            {evento.dataOcorrencia ? ` · Data da ocorrência: ${formatarData(evento.dataOcorrencia)}` : ''}
-                                        </span>
-                                    </li>
-                                ))}
-                            </S.ListaTimeline>
-                        </S.Cartao>
-                    </>
+                            <div>
+                                <dt>Prazo de entrega</dt>
+                                <S.Prazo>{formatarData(dados.prazoEntrega)}</S.Prazo>
+                            </div>
+                        </S.Resumo>
+                        <h2>Linha do tempo</h2>
+                        <LinhaDoTempo rotulo={`Linha do tempo do pedido ${dados.codigo}`} etapas={etapasPublicas(dados)} />
+                    </S.Cartao>
                 )}
+
+                <div>
+                    <S.Rodape id="codigo-ajuda">O código tem 8 letras e números. Em caso de dúvida, fale com a Logística UFSCar.</S.Rodape>
+                    {dados && !encerrado && ultimaAtualizacao && (
+                        <S.Rodape>
+                            Esta página se atualiza sozinha a cada {dados.intervaloAtualizacaoSegundos} segundos
+                            (última verificação às {ultimaAtualizacao.toLocaleTimeString('pt-BR')}).
+                        </S.Rodape>
+                    )}
+                </div>
             </S.Conteudo>
         </S.Container>
     )

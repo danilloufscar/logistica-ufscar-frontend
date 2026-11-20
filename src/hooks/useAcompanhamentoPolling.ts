@@ -2,8 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { consultarAcompanhamento } from '@/services/acompanhamentoService'
 import type { AcompanhamentoPedido } from '@/types/acompanhamento'
 import { mensagemDeErro } from '@/services/api'
-
-export const INTERVALO_ATUALIZACAO_MS = 30_000
+import { INTERVALO_ATUALIZACAO_MS } from './useAtualizacaoPeriodica'
 
 export function useAcompanhamentoPolling(codigo: string) {
     const codigoLimpo = codigo.trim()
