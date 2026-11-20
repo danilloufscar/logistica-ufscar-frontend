@@ -107,7 +107,7 @@ export const Field = styled.div`
   align-content: start;
   gap: 8px;
   label { font-size: ${({ theme }) => theme.font.rotulo.size}; font-weight: ${({ theme }) => theme.font.rotulo.weight}; }
-  input, select {
+  input, select, textarea {
     width: 100%;
     min-width: 0;
     min-height: ${({ theme }) => theme.size.controle};
@@ -128,5 +128,6 @@ export const Field = styled.div`
   input::placeholder { color: ${({ theme }) => theme.colors.textoSecundario}; }
   input[autocapitalize='characters'] { text-transform: uppercase; }
   input[autocapitalize='characters']::placeholder { text-transform: none; }
-  input[aria-invalid='true'], select[aria-invalid='true'] { border-color: ${({ theme }) => theme.colors.obrigatorio}; }
+  textarea { resize: vertical; font: inherit; }
+  input[aria-invalid='true'], select[aria-invalid='true'], textarea[aria-invalid='true'] { border-color: ${({ theme }) => theme.colors.obrigatorio}; }
 `

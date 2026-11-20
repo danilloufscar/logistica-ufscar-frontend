@@ -124,7 +124,7 @@ export function AcompanhamentoPage() {
                                         </strong>
                                         {evento.tipo === 'OCORRENCIA' && <div>{evento.descricao}</div>}
                                         <span>
-                                            {formatarDataHora(evento.dataHora)}
+                                            {formatarDataHora(evento.dataHora)}{evento.usuario && ` · ${evento.usuario.nome}`}
                                             {evento.dataOcorrencia ? ` · Data da ocorrência: ${formatarData(evento.dataOcorrencia)}` : ''}
                                         </span>
                                     </li>

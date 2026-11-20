@@ -280,3 +280,19 @@ No detalhe do pedido, **Avançar para Despachado** usa a rota existente de avan�
 Quando recebe `ESTOQUE_INSUFICIENTE` (409), a tela mantém o pedido em separação e exibe os produtos afetados, código, quantidade solicitada, disponível e faltante. O alerta permanece visível e oferece acesso a **Registrar entrada** e **Consultar saldos**. Após repor o estoque, retorne ao pedido e tente despachar novamente. Durante o envio, o botão fica bloqueado; não há repetição automática do POST. Após falha, a tela consulta o pedido novamente para conferir seu estado.
 
 Valide com os dois perfis: falta de saldo não pode mudar o status nem baixar parcialmente; após reposição, o despacho deve avançar e os saldos devem aparecer atualizados no RF10. Saldo exato é suficiente, mesmo ficando abaixo do mínimo após a baixa. Trânsito e entrega não baixam novamente. O backend deve estar atualizado com a migração V6.
+
+## Inventário e movimentações — RF11 / RF12
+
+O Administrador acessa **Ajuste de inventário** pelo menu ou **Ajustar inventário** em Saldo de estoque. A rota `/estoque/ajustes` usa `POST /api/estoque/ajustes`, com produto, quantidade total contada e justificativa. Permite zero e rejeita negativos, frações e valores fora do limite inteiro do backend. O saldo mostrado na seleção é informativo; o servidor usa o saldo atual ao gravar. Campos ficam bloqueados durante o envio e não há repetição automática do POST. A confirmação mostra saldos anterior/atual, diferença, justificativa e responsável. Após falha de conexão, consulte saldo/histórico antes de reenviar.
+
+Em Saldo de estoque, **Movimentações** abre `/estoque/produtos/:produtoId/movimentacoes`, consultando `GET /api/estoque/{produtoId}/movimentacoes`. Administrador e Operador veem histórico ordenado pela API, com os quatro tipos, sinais de entrada/saída, responsável, data, registro, justificativa e link ao pedido. Há atualização manual e estados de vazio, carregamento e erro. Uma falha de atualização preserva a última consulta com aviso.
+
+Para validar: ajuste de 10 para 7, de 7 para 12 e de 12 para zero; confira o histórico após cada operação. Uma contagem igual ao saldo deve mostrar erro no campo. Operador pode consultar, mas não vê a opção de ajuste e recebe Acesso negado ao abrir a rota diretamente. Teste também produto sem movimentos e histórico de um produto despachado.
+
+## RF13 e RF14 — timeline e ocorrências
+
+No detalhe do pedido, Administrador e Operador podem registrar atraso, avaria ou destinatário ausente com descrição e data obrigatórias. Descrição limitada a 500 caracteres; campos bloqueados durante envio e sem repetição automática do POST. Em erro de conexão, consulte a timeline antes de reenviar. Pedidos encerrados mantêm a consulta, mas não oferecem formulário.
+
+Uma única timeline mostra status e ocorrências, data de registro, data do ocorrido e responsável. Ela é consultada após salvar ou alterar status e pode ser atualizada manualmente. As próximas etapas continuam visíveis separadamente. Em falha, os últimos eventos permanecem com aviso. O acompanhamento público também apresenta autoria. Atualização periódica é tratada separadamente no RF16.
+
+Valide os três tipos com ambos os perfis; confirme que o status e o saldo não mudam. Confira atualização da timeline, autoria pública, bloqueio após encerramento, campos vazios e clique duplo. Para o fluxo de estoque, consulte as seções RF08 a RF12.

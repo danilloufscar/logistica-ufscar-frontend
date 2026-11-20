@@ -224,3 +224,11 @@ export const InformacaoDespacho = styled.p`
   line-height: 1.5;
   color: ${({ theme }) => theme.colors.textoSecundario};
 `
+
+export const ListaOcorrencias = styled.ul`
+  list-style: none;
+  padding: 0;
+  margin-top: 20px;
+  li { padding: 16px 0; border-top: 1px solid ${({ theme }) => theme.colors.borda}; overflow-wrap: anywhere; }
+  p { margin-top: 8px; white-space: pre-wrap; }
+`

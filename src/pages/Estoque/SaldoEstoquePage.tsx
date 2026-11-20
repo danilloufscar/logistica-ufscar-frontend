@@ -1,3 +1,4 @@
+import { useAppSelector } from '@/store/hooks'
 import { useEffect } from 'react'
 import { Button, ButtonLink, Eyebrow, Page, PrimaryButtonLink } from '@/components/ui'
 import { TabelaDados, type Coluna } from '@/components/TabelaDados'
@@ -16,6 +17,7 @@ const COLUNAS: readonly Coluna<SaldoEstoque>[] = [
       {produto.abaixoOuNoMinimo ? 'No mínimo ou abaixo' : 'Acima do mínimo'}
     </S.Situacao>
   ) },
+  { titulo: 'Histórico', valor: produto => <ButtonLink to={'/estoque/produtos/' + produto.id + '/movimentacoes'} aria-label={'Ver movimentações de ' + produto.nome}>Movimentações</ButtonLink> },
 ]
 
 const TEXTOS = {
@@ -26,6 +28,7 @@ const TEXTOS = {
 }
 
 export function SaldoEstoquePage() {
+  const administrador = useAppSelector(state => state.auth.usuario?.perfil === 'ADMINISTRADOR')
   useEffect(() => { document.title = 'Saldo de estoque | SGLU' }, [])
   const consulta = useConsulta(listarSaldos, 'Não foi possível carregar o estoque.')
   const alertas = consulta.dados?.filter(produto => produto.abaixoOuNoMinimo).length
@@ -37,6 +40,7 @@ export function SaldoEstoquePage() {
       <S.Ajuda>Quantidades em unidades. O alerta aparece quando o saldo é igual ou menor que o estoque mínimo.</S.Ajuda>
       <S.Actions>
         <PrimaryButtonLink to="/estoque/entradas">Registrar entrada</PrimaryButtonLink>
+        {administrador && <ButtonLink to="/estoque/ajustes">Ajustar inventário</ButtonLink>}
         <Button type="button" onClick={consulta.atualizar} disabled={consulta.carregando}>
           {consulta.carregando ? 'Atualizando…' : 'Atualizar saldos'}
         </Button>

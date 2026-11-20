@@ -10,6 +10,7 @@ export interface ItemAcompanhamento {
 
 export interface EventoTimelineAcompanhamento {
     tipo: 'STATUS' | 'OCORRENCIA'
+    usuario?: { id: number; nome: string }
     dataHora: string
     dataOcorrencia?: string | null
     status?: StatusPedido | null

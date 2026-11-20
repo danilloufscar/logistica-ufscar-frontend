@@ -1,3 +1,5 @@
+import { AjusteEstoquePage } from '@/pages/Estoque/AjusteEstoquePage'
+import { MovimentacoesEstoquePage } from '@/pages/Estoque/MovimentacoesEstoquePage'
 import { createBrowserRouter } from 'react-router-dom'
 import { LoginPage } from '@/pages/Login'
 import { AcompanhamentoPage } from '@/pages/Acompanhamento'
@@ -29,6 +31,7 @@ export const router = createBrowserRouter([
         { path: '/', element: <InicioPage /> },
         { path: '/estoque/entradas', element: <EntradaEstoquePage /> },
         { path: '/estoque', element: <SaldoEstoquePage /> },
+        { path: '/estoque/produtos/:produtoId/movimentacoes', element: <MovimentacoesEstoquePage /> },
         {
           element: <CadastrosPage />,
           children: [
@@ -43,6 +46,7 @@ export const router = createBrowserRouter([
         {
           element: <ProtectedRoute perfis={PERFIS_ADMINISTRACAO} />,
           children: [
+            { path: '/estoque/ajustes', element: <AjusteEstoquePage /> },
             { path: '/usuarios', element: <UsuariosPage /> },
             { path: '/usuarios/novo', element: <NovoUsuarioPage /> },
           ],

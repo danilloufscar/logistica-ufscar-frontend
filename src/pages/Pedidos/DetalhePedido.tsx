@@ -1,15 +1,17 @@
+import { buscarTimeline } from '@/services/ocorrenciaService'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { DialogoConfirmacao } from '@/components/DialogoConfirmacao'
 import { SeloStatus } from '@/components/SeloStatus'
 import { Table } from '@/components/TabelaDados/styles'
-import { Button, ButtonLink, Oculto, Page, PrimaryButton } from '@/components/ui'
+import { Button, ButtonLink, Page, PrimaryButton } from '@/components/ui'
 import { useConsulta } from '@/hooks/useConsulta'
 import { mensagemDeErro } from '@/services/api'
 import { avancarPedido, buscarPedido, cancelarPedido, itensSemEstoque } from '@/services/pedidoService'
 import type { ItemSemEstoque, Pedido } from '@/types/pedido'
 import { AlertaEstoque } from './AlertaEstoque'
+import { OcorrenciasPedido } from './OcorrenciasPedido'
 import {
   FLUXO_STATUS, ROTULO_STATUS, formatarData, formatarDataHora, idDePedido, permiteAlteracao, proximoStatus,
 } from '@/utils/pedido'
@@ -162,6 +164,7 @@ function DetalhePedido({ id }: { id: number }) {
                 </tbody>
               </Table>
             </S.Cartao>
+            <OcorrenciasPedido pedidoId={id} encerrado={pedido.status === 'ENTREGUE' || pedido.status === 'CANCELADO'} aoRegistrar={atualizar} />
           </S.Coluna>
 
           <S.Cartao aria-labelledby="pedido-linha-do-tempo">
@@ -179,32 +182,27 @@ function DetalhePedido({ id }: { id: number }) {
   )
 }
 
-/** RF07 / RF13: etapas com data, hora e usuário; as seguintes aparecem como pendentes. */
 function LinhaDoTempo({ pedido }: { pedido: Pedido }) {
-  const registros = new Map(pedido.historico.map((registro) => [registro.status, registro]))
-  // Um pedido cancelado mostra só o que aconteceu; os demais, o fluxo completo.
-  const etapas = pedido.status === 'CANCELADO' ? pedido.historico.map((registro) => registro.status) : FLUXO_STATUS
-  const proximo = proximoStatus(pedido.status)
-
-  return (
-    <S.LinhaDoTempo>
-      {etapas.map((status) => {
-        const registro = registros.get(status)
-        const situacao = registro
-          ? (status === 'CANCELADO' ? 'cancelado' : 'concluido')
-          : (status === proximo ? 'proximo' : 'pendente')
-        return (
-          <li key={status} data-situacao={situacao} aria-current={status === pedido.status ? 'step' : undefined}>
-            <S.Marcador $situacao={situacao} aria-hidden="true" />
-            <div>
-              <strong>{ROTULO_STATUS[status]}</strong>
-              {registro && <span>{formatarDataHora(registro.dataHora)} · {registro.usuario.nome}</span>}
-              {situacao === 'proximo' && <span>Próxima etapa</span>}
-              {situacao === 'pendente' && <Oculto>Etapa pendente</Oculto>}
-            </div>
-          </li>
-        )
-      })}
-    </S.LinhaDoTempo>
-  )
+  const carregar = useCallback((signal: AbortSignal) => buscarTimeline(pedido.id, signal), [pedido])
+  const consulta = useConsulta(carregar, 'Não foi possível carregar a timeline.')
+  return <>
+    <Button onClick={consulta.atualizar} disabled={consulta.carregando}>Atualizar timeline</Button>
+    {consulta.carregando && <p role="status">Carregando timeline…</p>}
+    {consulta.erro && <p role="alert">{consulta.erro} {consulta.dados && 'Exibindo a última consulta disponível.'}</p>}
+    <S.ListaOcorrencias aria-label="Timeline do pedido">
+      {consulta.dados?.map((evento, indice) => <li key={`${evento.dataHora}-${indice}`}>
+        <strong>{evento.tipo === 'STATUS' ? evento.statusRotulo : `Ocorrência: ${evento.tipoOcorrenciaRotulo}`}</strong>
+        {evento.tipo === 'OCORRENCIA' && <p>{evento.descricao}{evento.dataOcorrencia && ` · Data da ocorrência: ${formatarData(evento.dataOcorrencia)}`}</p>}
+        <p>{formatarDataHora(evento.dataHora)} · {evento.usuario.nome}</p>
+      </li>)}
+    </S.ListaOcorrencias>
+    {pedido.status !== 'CANCELADO' && pedido.status !== 'ENTREGUE' && <>
+      <h3>Próximas etapas</h3>
+      <S.ListaOcorrencias aria-label="Próximas etapas">
+        {FLUXO_STATUS.slice(FLUXO_STATUS.indexOf(pedido.status) + 1).map((status, indice) => <li key={status}>
+          <strong>{ROTULO_STATUS[status]}</strong><p>{indice === 0 ? 'Próxima etapa' : 'Etapa pendente'}</p>
+        </li>)}
+      </S.ListaOcorrencias>
+    </>}
+  </>
 }
