@@ -1,18 +1,19 @@
+import { buscarTimeline } from '@/services/ocorrenciaService'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { toast } from 'react-toastify'
 import { DialogoConfirmacao } from '@/components/DialogoConfirmacao'
 import { SeloStatus } from '@/components/SeloStatus'
 import { Table } from '@/components/TabelaDados/styles'
-import { Button, ButtonLink, Oculto, Page, PrimaryButton } from '@/components/ui'
+import { Button, ButtonLink, ErrorText, Page, PrimaryButton, TextButton } from '@/components/ui'
+import { LinhaDoTempo } from '@/components/LinhaDoTempo'
+import { etapasDoPedido } from '@/utils/linhaDoTempo'
 import { useConsulta } from '@/hooks/useConsulta'
 import { mensagemDeErro } from '@/services/api'
 import { avancarPedido, buscarPedido, cancelarPedido, itensSemEstoque } from '@/services/pedidoService'
 import type { ItemSemEstoque, Pedido } from '@/types/pedido'
 import { AlertaEstoque } from './AlertaEstoque'
-import {
-  FLUXO_STATUS, ROTULO_STATUS, formatarData, formatarDataHora, idDePedido, permiteAlteracao, proximoStatus,
-} from '@/utils/pedido'
+import { ROTULO_STATUS, formatarData, idDePedido, permiteAlteracao, proximoStatus } from '@/utils/pedido'
 import { EstadoConsulta, PedidoNaoEncontrado } from './EstadoConsulta'
 import * as S from './styles'
 
@@ -116,9 +117,6 @@ function DetalhePedido({ id }: { id: number }) {
         )}
       </S.Cabecalho>
 
-      {pedido?.status === 'EM_SEPARACAO' && (
-        <S.InformacaoDespacho>Ao despachar, o estoque de todos os itens será baixado. Se faltar saldo em algum produto, o pedido permanecerá em separação.</S.InformacaoDespacho>
-      )}
       {faltas && pedido?.status === 'EM_SEPARACAO' && <AlertaEstoque itens={faltas} />}
 
       {!pedido ? (
@@ -166,7 +164,7 @@ function DetalhePedido({ id }: { id: number }) {
 
           <S.Cartao aria-labelledby="pedido-linha-do-tempo">
             <h2 id="pedido-linha-do-tempo">Linha do tempo</h2>
-            <LinhaDoTempo pedido={pedido} />
+            <LinhaDoTempoPedido pedido={pedido} />
           </S.Cartao>
         </S.LayoutDetalhe>
       )}
@@ -179,32 +177,21 @@ function DetalhePedido({ id }: { id: number }) {
   )
 }
 
-/** RF07 / RF13: etapas com data, hora e usuário; as seguintes aparecem como pendentes. */
-function LinhaDoTempo({ pedido }: { pedido: Pedido }) {
-  const registros = new Map(pedido.historico.map((registro) => [registro.status, registro]))
-  // Um pedido cancelado mostra só o que aconteceu; os demais, o fluxo completo.
-  const etapas = pedido.status === 'CANCELADO' ? pedido.historico.map((registro) => registro.status) : FLUXO_STATUS
-  const proximo = proximoStatus(pedido.status)
-
-  return (
-    <S.LinhaDoTempo>
-      {etapas.map((status) => {
-        const registro = registros.get(status)
-        const situacao = registro
-          ? (status === 'CANCELADO' ? 'cancelado' : 'concluido')
-          : (status === proximo ? 'proximo' : 'pendente')
-        return (
-          <li key={status} data-situacao={situacao} aria-current={status === pedido.status ? 'step' : undefined}>
-            <S.Marcador $situacao={situacao} aria-hidden="true" />
-            <div>
-              <strong>{ROTULO_STATUS[status]}</strong>
-              {registro && <span>{formatarDataHora(registro.dataHora)} · {registro.usuario.nome}</span>}
-              {situacao === 'proximo' && <span>Próxima etapa</span>}
-              {situacao === 'pendente' && <Oculto>Etapa pendente</Oculto>}
-            </div>
-          </li>
-        )
-      })}
-    </S.LinhaDoTempo>
-  )
+/** RF13: status e ocorrências em ordem, seguidos das etapas que faltam (RN01). */
+function LinhaDoTempoPedido({ pedido }: { pedido: Pedido }) {
+  // Recarrega sempre que o pedido muda (avanço, cancelamento ou nova consulta).
+  const carregar = useCallback((signal: AbortSignal) => buscarTimeline(pedido.id, signal), [pedido])
+  const consulta = useConsulta(carregar, 'Não foi possível carregar a linha do tempo.')
+  const aberto = pedido.status !== 'ENTREGUE' && pedido.status !== 'CANCELADO'
+  return <>
+    {consulta.dados === null && consulta.carregando && <p role="status">Carregando linha do tempo…</p>}
+    {consulta.erro && (
+      <ErrorText role="alert">
+        {consulta.erro}{consulta.dados && ' Exibindo a última consulta disponível.'}{' '}
+        <TextButton type="button" onClick={consulta.atualizar} disabled={consulta.carregando}>Tentar novamente</TextButton>
+      </ErrorText>
+    )}
+    {consulta.dados && <LinhaDoTempo rotulo="Linha do tempo do pedido" etapas={etapasDoPedido(consulta.dados, pedido.status, true)} />}
+    {aberto && <S.LinkSecundario to={`/pedidos/${pedido.id}/ocorrencias/nova`}>Registrar ocorrência</S.LinkSecundario>}
+  </>
 }
