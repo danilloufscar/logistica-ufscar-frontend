@@ -1,3 +1,4 @@
+import { TIMEOUT_ATUALIZACAO_MS } from '@/config/atualizacao'
 import axios from 'axios'
 import { api, interpretarErroDeCadastro } from './api'
 import type { StatusPedido } from '@/types/pedido'
@@ -47,6 +48,6 @@ export interface EventoTimeline {
   descricao: string
 }
 export async function buscarTimeline(id: number, signal: AbortSignal): Promise<EventoTimeline[]> {
-  const { data } = await api.get<EventoTimeline[]>(`/pedidos/${id}/timeline`, { signal })
+  const { data } = await api.get<EventoTimeline[]>(`/pedidos/${id}/timeline`, { signal, timeout: TIMEOUT_ATUALIZACAO_MS })
   return data
 }

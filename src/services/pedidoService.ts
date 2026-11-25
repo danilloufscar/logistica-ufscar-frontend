@@ -1,16 +1,17 @@
+import { TIMEOUT_ATUALIZACAO_MS } from '@/config/atualizacao'
 import { api, interpretarErroDeCadastro } from './api'
 import axios from 'axios'
 import type { ItemSemEstoque } from '@/types/pedido'
 import type { CampoPedido, DadosPedido, Pedido, ResumoPedido, StatusPedido } from '@/types/pedido'
 
 export async function listarPedidos(signal: AbortSignal): Promise<ResumoPedido[]> {
-  const { data } = await api.get<ResumoPedido[]>('/pedidos', { signal })
+  const { data } = await api.get<ResumoPedido[]>('/pedidos', { signal, timeout: TIMEOUT_ATUALIZACAO_MS })
   if (!Array.isArray(data)) throw new Error('Resposta de pedidos inválida')
   return data
 }
 
 export async function buscarPedido(id: number, signal: AbortSignal): Promise<Pedido> {
-  const { data } = await api.get<Pedido>(`/pedidos/${id}`, { signal })
+  const { data } = await api.get<Pedido>(`/pedidos/${id}`, { signal, timeout: TIMEOUT_ATUALIZACAO_MS })
   return data
 }
 

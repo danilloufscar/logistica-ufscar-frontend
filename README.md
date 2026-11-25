@@ -306,3 +306,5 @@ O detalhe interno consulta o pedido e a timeline automaticamente a cada 30 segun
 Para validar: abra o detalhe e o portal do mesmo pedido, avance o status em outra sessão e confira ambos sem recarregar. Repita com ocorrência. Simule falha da API e confira preservação/recuperação; cancele o pedido e confira retirada do atraso e parada do polling público. A cadência é de 30 segundos; o tempo de exibição também depende da resposta da rede/API e do agendamento do navegador, devendo ser medido no ambiente de entrega.
 
 Integração de 25/11: preservados a tela de entregas, o contrato público restrito e o horário da última consulta da main. Tratamento local de timeout e cancelamento restaurado. Intervalo de 30 segundos preservado; o ajuste do limite de propagação será tratado separadamente.
+
+RF16 / RNF04: consultas periódicas a cada 10 segundos, com timeout de 8 segundos no front e atualização ao retornar à aba. A margem inclui rede e renderização; indisponibilidade de rede/servidor e suspensão da aba impedem garantir o prazo de 30 segundos. O contrato público informa o intervalo de 10 segundos.

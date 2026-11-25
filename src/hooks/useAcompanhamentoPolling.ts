@@ -29,7 +29,9 @@ export function useAcompanhamentoPolling(codigo: string) {
     executar.current = () => { void consultar() }
     void consultar()
     const timer = window.setInterval(() => { if (!encerrado) void consultar() }, INTERVALO_ATUALIZACAO_MS)
-    return () => { ativo = false; executar.current = null; window.clearInterval(timer); controller?.abort() }
+    const aoVoltar = () => { if (document.visibilityState === 'visible' && !encerrado) void consultar() }
+    document.addEventListener('visibilitychange', aoVoltar)
+    return () => { document.removeEventListener('visibilitychange', aoVoltar); ativo = false; executar.current = null; window.clearInterval(timer); controller?.abort() }
   }, [chave])
   const atual = estado.chave === chave ? estado : { dados: null, carregando: Boolean(chave), erro: null, ultimaAtualizacao: null }
   const recarregarManualmente = useCallback(() => executar.current?.(), [])
