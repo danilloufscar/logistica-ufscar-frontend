@@ -2,124 +2,37 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { consultarAcompanhamento } from '@/services/acompanhamentoService'
 import type { AcompanhamentoPedido } from '@/types/acompanhamento'
 import { mensagemDeErro } from '@/services/api'
+
 import { INTERVALO_ATUALIZACAO_MS } from './useAtualizacaoPeriodica'
-
 export function useAcompanhamentoPolling(codigo: string) {
-    const codigoLimpo = codigo.trim()
-    const [codigoAnterior, setCodigoAnterior] = useState(codigoLimpo)
-
-    const [dados, setDados] = useState<AcompanhamentoPedido | null>(null)
-    const [carregando, setCarregando] = useState(Boolean(codigoLimpo))
-    const [atualizandoEmSegundoPlano, setAtualizandoEmSegundoPlano] = useState(false)
-    const [erro, setErro] = useState<string | null>(null)
-    const [ultimaAtualizacao, setUltimaAtualizacao] = useState<Date | null>(null)
-
-    if (codigoLimpo !== codigoAnterior) {
-        setCodigoAnterior(codigoLimpo)
-        setDados(null)
-        setErro(null)
-        setCarregando(Boolean(codigoLimpo))
+  const chave = codigo.trim().toUpperCase()
+  const [estado, setEstado] = useState<{ chave: string; dados: AcompanhamentoPedido | null; carregando: boolean; erro: string | null; ultimaAtualizacao: Date | null }>({ chave: '', dados: null, carregando: false, erro: null, ultimaAtualizacao: null })
+  const executar = useRef<(() => void) | null>(null)
+  useEffect(() => {
+    let ativo = true
+    let controller: AbortController | null = null
+    let encerrado = false
+    async function consultar() {
+      if (!chave || controller || !ativo) return
+      const atual = new AbortController()
+      controller = atual
+      setEstado(anterior => anterior.chave === chave ? { ...anterior, carregando: true } : { chave, dados: null, carregando: true, erro: null, ultimaAtualizacao: null })
+      try {
+        const dados = await consultarAcompanhamento(chave, atual.signal)
+        if (!ativo || atual.signal.aborted) return
+        encerrado = dados.status === 'ENTREGUE' || dados.status === 'CANCELADO'
+        setEstado({ chave, dados, carregando: false, erro: null, ultimaAtualizacao: new Date() })
+      } catch (erro) {
+        if (ativo && !atual.signal.aborted) setEstado(anterior => ({ ...anterior, carregando: false, erro: mensagemDeErro(erro, 'Não foi possível consultar o acompanhamento do pedido.') }))
+      } finally { if (controller === atual) controller = null }
     }
-
-    const abortRef = useRef<AbortController | null>(null)
-
-    useEffect(() => {
-        if (!codigoLimpo) return
-
-        abortRef.current?.abort()
-        const controller = new AbortController()
-        abortRef.current = controller
-
-        consultarAcompanhamento(codigoLimpo, controller.signal)
-            .then((resposta) => {
-                if (controller.signal.aborted) return
-                setDados(resposta)
-                setErro(null)
-                setUltimaAtualizacao(new Date())
-            })
-            .catch((e) => {
-                if (controller.signal.aborted) return
-                setDados(null)
-                setErro(mensagemDeErro(e, 'Não foi possível consultar o acompanhamento do pedido.'))
-            })
-            .finally(() => {
-                if (abortRef.current === controller) {
-                    abortRef.current = null
-                    setCarregando(false)
-                }
-            })
-
-        return () => controller.abort()
-    }, [codigoLimpo])
-
-    const encerrado = dados?.status === 'ENTREGUE' || dados?.status === 'CANCELADO'
-
-    useEffect(() => {
-        if (!codigoLimpo || encerrado) return
-
-        const timer = window.setInterval(() => {
-            abortRef.current?.abort()
-            const controller = new AbortController()
-            abortRef.current = controller
-            setAtualizandoEmSegundoPlano(true)
-
-            consultarAcompanhamento(codigoLimpo, controller.signal)
-                .then((resposta) => {
-                    if (controller.signal.aborted) return
-                    setDados(resposta)
-                    setErro(null)
-                    setUltimaAtualizacao(new Date())
-                })
-                .catch((e) => {
-                    if (controller.signal.aborted) return
-                    setErro(mensagemDeErro(e, 'Não foi possível consultar o acompanhamento do pedido.'))
-                })
-                .finally(() => {
-                    if (abortRef.current === controller) {
-                        abortRef.current = null
-                        setAtualizandoEmSegundoPlano(false)
-                    }
-                })
-        }, INTERVALO_ATUALIZACAO_MS)
-
-        return () => window.clearInterval(timer)
-    }, [codigoLimpo, encerrado])
-
-    const recarregarManualmente = useCallback(() => {
-        if (!codigoLimpo) return
-
-        abortRef.current?.abort()
-        const controller = new AbortController()
-        abortRef.current = controller
-        setCarregando(true)
-        setErro(null)
-
-        consultarAcompanhamento(codigoLimpo, controller.signal)
-            .then((resposta) => {
-                if (controller.signal.aborted) return
-                setDados(resposta)
-                setErro(null)
-                setUltimaAtualizacao(new Date())
-            })
-            .catch((e) => {
-                if (controller.signal.aborted) return
-                setDados(null)
-                setErro(mensagemDeErro(e, 'Não foi possível consultar o acompanhamento do pedido.'))
-            })
-            .finally(() => {
-                if (abortRef.current === controller) {
-                    abortRef.current = null
-                    setCarregando(false)
-                }
-            })
-    }, [codigoLimpo])
-
-    return {
-        dados,
-        carregando,
-        atualizandoEmSegundoPlano,
-        erro,
-        ultimaAtualizacao,
-        recarregarManualmente,
-    }
+    executar.current = () => { void consultar() }
+    void consultar()
+    const timer = window.setInterval(() => { if (!encerrado) void consultar() }, INTERVALO_ATUALIZACAO_MS)
+    return () => { ativo = false; executar.current = null; window.clearInterval(timer); controller?.abort() }
+  }, [chave])
+  const atual = estado.chave === chave ? estado : { dados: null, carregando: Boolean(chave), erro: null, ultimaAtualizacao: null }
+  const recarregarManualmente = useCallback(() => executar.current?.(), [])
+  return { dados: atual.dados, erro: atual.erro, ultimaAtualizacao: atual.ultimaAtualizacao,
+    carregando: atual.carregando && !atual.dados, atualizandoEmSegundoPlano: atual.carregando && !!atual.dados, recarregarManualmente }
 }

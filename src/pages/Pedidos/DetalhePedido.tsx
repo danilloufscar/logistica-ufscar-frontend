@@ -1,3 +1,4 @@
+import { useAtualizacaoPeriodica } from '@/hooks/useAtualizacaoPeriodica'
 import { buscarTimeline } from '@/services/ocorrenciaService'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
@@ -37,6 +38,7 @@ type Acao = 'avancar' | 'cancelar'
 function DetalhePedido({ id }: { id: number }) {
   const carregar = useCallback((signal: AbortSignal) => buscarPedido(id, signal), [id])
   const consulta = useConsulta(carregar, 'Não foi possível carregar o pedido.')
+  useAtualizacaoPeriodica(consulta.atualizar)
   const { atualizar, substituir } = consulta
   const pedido = consulta.dados
   const [acao, setAcao] = useState<Acao | null>(null)
@@ -182,6 +184,7 @@ function LinhaDoTempoPedido({ pedido }: { pedido: Pedido }) {
   // Recarrega sempre que o pedido muda (avanço, cancelamento ou nova consulta).
   const carregar = useCallback((signal: AbortSignal) => buscarTimeline(pedido.id, signal), [pedido])
   const consulta = useConsulta(carregar, 'Não foi possível carregar a linha do tempo.')
+  useAtualizacaoPeriodica(consulta.atualizar)
   const aberto = pedido.status !== 'ENTREGUE' && pedido.status !== 'CANCELADO'
   return <>
     {consulta.dados === null && consulta.carregando && <p role="status">Carregando linha do tempo…</p>}

@@ -10,6 +10,7 @@ export async function consultarAcompanhamento(
         `/api/acompanhamento/${encodeURIComponent(codigoNormalizado)}`,
         {
             signal,
+            timeout: 15_000,
             headers: {
                 'Cache-Control': 'no-cache',
                 Pragma: 'no-cache',
