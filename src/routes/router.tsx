@@ -1,3 +1,4 @@
+import { RelatoriosPage } from '@/pages/Relatorios'
 import { AjusteEstoquePage } from '@/pages/Estoque/AjusteEstoquePage'
 import { MovimentacoesEstoquePage } from '@/pages/Estoque/MovimentacoesEstoquePage'
 import { createBrowserRouter } from 'react-router-dom'
@@ -51,6 +52,7 @@ export const router = createBrowserRouter([
           element: <ProtectedRoute perfis={PERFIS_ADMINISTRACAO} />,
           children: [
             { path: '/estoque/ajustes', element: <AjusteEstoquePage /> },
+            { path: '/relatorios', element: <RelatoriosPage /> },
             { path: '/usuarios', element: <UsuariosPage /> },
             { path: '/usuarios/novo', element: <NovoUsuarioPage /> },
           ],
