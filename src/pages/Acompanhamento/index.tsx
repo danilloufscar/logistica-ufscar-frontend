@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom'
 import { format, isValid, parseISO } from 'date-fns'
 import { LinhaDoTempo, type EtapaLinhaDoTempo } from '@/components/LinhaDoTempo'
 import { SeloStatus } from '@/components/SeloStatus'
-import { PrimaryButton } from '@/components/ui'
+import { Button, PrimaryButton } from '@/components/ui'
 import { useAcompanhamentoPolling } from '@/hooks/useAcompanhamentoPolling'
 import type { AcompanhamentoPedido } from '@/types/acompanhamento'
 import { FLUXO_STATUS, ROTULO_STATUS, formatarData } from '@/utils/pedido'
@@ -47,7 +47,7 @@ export function AcompanhamentoPage() {
         document.title = codigoUrl ? `Pedido ${codigoUrl.toUpperCase()} | Logística UFSCar` : 'Onde está meu pedido? | Logística UFSCar'
     }, [codigoUrl])
 
-    const { dados, carregando, erro, ultimaAtualizacao } = useAcompanhamentoPolling(codigoUrl)
+    const { dados, carregando, erro, ultimaAtualizacao, atualizandoEmSegundoPlano, recarregarManualmente } = useAcompanhamentoPolling(codigoUrl)
 
     function aoBuscar(e: React.FormEvent) {
         e.preventDefault()
@@ -76,7 +76,7 @@ export function AcompanhamentoPage() {
                     </div>
                 </S.FormBusca>
 
-                {erro && <S.AvisoErro role="alert">{erro}</S.AvisoErro>}
+                {erro && <S.AvisoErro role="alert">{erro}{dados && " Exibindo os últimos dados recebidos."}</S.AvisoErro>}<Button onClick={recarregarManualmente} disabled={!codigoUrl || carregando || atualizandoEmSegundoPlano}>Atualizar acompanhamento</Button>
 
                 {dados && (
                     <S.Cartao aria-label={`Pedido ${dados.codigo}`}>

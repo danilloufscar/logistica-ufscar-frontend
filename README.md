@@ -296,3 +296,36 @@ No detalhe do pedido, Administrador e Operador podem registrar atraso, avaria ou
 Uma única timeline mostra status e ocorrências, data de registro, data do ocorrido e responsável. Ela é consultada após salvar ou alterar status e pode ser atualizada manualmente. As próximas etapas continuam visíveis separadamente. Em falha, os últimos eventos permanecem com aviso. O acompanhamento público também apresenta autoria. Atualização periódica é tratada separadamente no RF16.
 
 Valide os três tipos com ambos os perfis; confirme que o status e o saldo não mudam. Confira atualização da timeline, autoria pública, bloqueio após encerramento, campos vazios e clique duplo. Para o fluxo de estoque, consulte as seções RF08 a RF12.
+
+## RF15 e RF16 — atraso e atualização automática
+
+Pedidos vencidos são destacados na lista, no detalhe e no acompanhamento interno conforme o indicador atrasado calculado pelo servidor. O portal público mantém o contrato restrito da main, sem indicador de atraso. Entregues e cancelados não recebem esse destaque; prazo de hoje também não.
+
+O detalhe interno consulta o pedido e a timeline automaticamente a cada 30 segundos. O portal consulta no mesmo intervalo e encerra o polling quando recebe ENTREGUE/CANCELADO. Atualização manual permanece disponível. Chamadas não se sobrepõem; sair da tela ou mudar o código cancela a requisição ativa e remove o timer. Cada chamada tem timeout de 15 segundos. Falhas preservam os últimos dados com aviso e o próximo ciclo tenta novamente. Trocar o código limpa os dados e o horário de atualização anteriores.
+
+Para validar: abra o detalhe e o portal do mesmo pedido, avance o status em outra sessão e confira ambos sem recarregar. Repita com ocorrência. Simule falha da API e confira preservação/recuperação; cancele o pedido e confira retirada do atraso e parada do polling público. A cadência é de 30 segundos; o tempo de exibição também depende da resposta da rede/API e do agendamento do navegador, devendo ser medido no ambiente de entrega.
+
+Integração de 25/11: preservados a tela de entregas, o contrato público restrito e o horário da última consulta da main. Tratamento local de timeout e cancelamento restaurado. Intervalo de 30 segundos preservado; o ajuste do limite de propagação será tratado separadamente.
+
+RF16 / RNF04: consultas periódicas a cada 10 segundos, com timeout de 8 segundos no front e atualização ao retornar à aba. A margem inclui rede e renderização; indisponibilidade de rede/servidor e suspensão da aba impedem garantir o prazo de 30 segundos. O contrato público informa o intervalo de 10 segundos.
+
+## RF18 / RF19 — Relatórios de desempenho
+
+Acesso exclusivo do Administrador. Frontend: `/relatorios`. API:
+`GET /api/relatorios/desempenho?inicio=2026-11-01&fim=2026-11-30`
+com Bearer token. Datas obrigatórias em AAAA-MM-DD; início posterior ao fim resulta em HTTP 400.
+Operador recebe 403; sem autenticação, 401.
+
+Interpretação temporal adotada para o período escolhido (o enunciado não define a data-base de RF18):
+- Quantidade por status: pedidos **criados** no período, agrupados pelo **status atual**. Os cinco status não cancelados são retornados, inclusive com zero.
+- Pontualidade: pedidos **entregues** no período, independentemente da criação. Percentual = entregas no prazo / total de entregas do período × 100, arredondado para duas casas.
+- RN07: cancelados ficam fora dos dois indicadores. A data do registro ENTREGUE é comparada ao prazo, incluindo o próprio dia.
+- Todas as datas usam America/Sao_Paulo. Os dois dias do filtro são inclusivos.
+- Sem entregas, percentualNoPrazo é null; a tela informa que não há base de cálculo. Zero por cento é reservado para entregas existentes, todas atrasadas.
+- As contagens e entregas são consultadas em uma transação de leitura consistente. Não são expostos clientes, itens ou dados pessoais.
+- RF19: tempoMedioEntregaDias é a média das durações entre criação e registro ENTREGUE, considerando as mesmas entregas do período da pontualidade. Usa dias de 24 horas, inclui frações e arredonda somente a média final para duas casas. Sem entregas retorna null; uma entrega imediata pode resultar em 0,00 dia.
+
+Validação automatizada do RF18/RF19: RelatorioIntegrationTest e RelatorioServiceTest verificam autorização, filtros, limites de data/fuso, cancelados, arredondamento, períodos inválidos e vazio. A tela permite repetir consultas com falha e descarta respostas do período anterior ao trocar o filtro.
+
+
+Validação em 26/11/2026: suíte completa com 198 testes aprovados; JaCoCo aprovado (RelatorioService com 100% das linhas e decisões cobertas). Frontend passou em TypeScript, build e lint. O cenário integrado usa PostgreSQL temporário e dados fictícios, com verificação da tela em desktop e celular, filtros, período vazio, falha/recuperação e acesso exclusivo do Administrador.
